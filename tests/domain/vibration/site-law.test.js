@@ -216,4 +216,12 @@ describe('extrapolation', () => {
   it('reports how far past the far end it is reaching', () => {
     expect(extrapolation(fit, 160)).toEqual({ extrapolating: true, factor: 2 });
   });
+
+  it('says nothing when the law was handed over without its data range', () => {
+    expect(extrapolation({ k: 1140, b: 1.6 }, 40)).toEqual({
+      extrapolating: false,
+      factor: 1,
+      unknown: true,
+    });
+  });
 });

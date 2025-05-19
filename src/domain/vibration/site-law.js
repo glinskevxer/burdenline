@@ -150,6 +150,9 @@ export function upperBound(fit, confidence = 0.95) {
 
 /** How far outside its own data a prediction is being asked to reach. */
 export function extrapolation(fit, sd) {
+  if (!fit.scaledDistanceRange) {
+    return { extrapolating: false, factor: 1, unknown: true };
+  }
   if (sd >= fit.scaledDistanceRange.low && sd <= fit.scaledDistanceRange.high) {
     return { extrapolating: false, factor: 1 };
   }
