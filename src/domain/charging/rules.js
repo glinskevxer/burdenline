@@ -10,6 +10,7 @@
  */
 
 import { roundTo } from '../../lib/units.js';
+import { collector, byRule } from '../violations.js';
 
 export const DEFAULT_CHARGE_RULES = Object.freeze({
   minimumStemmingDiameters: 20,
@@ -46,148 +47,121 @@ export function maximumStemmingM(burdenM, rules = DEFAULT_CHARGE_RULES) {
  * `column` is what buildColumn produced.
  */
 export function checkHoleCharge(hole, column, rules = DEFAULT_CHARGE_RULES) {
-  const violations = [];
+  const found = collector();
   const burden = hole.measuredBurdenM ?? hole.nominalBurdenM;
   const diameter = column.diameterMm ?? hole.diameterMm;
+  const at = { holeNumber: hole.holeNumber };
 
   if (burden !== undefined && burden !== null) {
     const floor = minimumStemmingM(diameter, burden, rules);
-    if (column.stemmingM < floor - 1e-9) {
-      violations.push({
-        rule: 'stemming.minimum',
-        holeNumber: hole.holeNumber,
-        message: `stemming of ${column.stemmingM} m is under the ${floor} m this hole needs`,
-        actual: column.stemmingM,
-        required: floor,
-      });
-    }
-    const ceiling = maximumStemmingM(burden, rules);
-    if (column.stemmingM > ceiling + 1e-9) {
-      violations.push({
-        rule: 'stemming.maximum',
-        holeNumber: hole.holeNumber,
-        message: `stemming of ${column.stemmingM} m will leave the collar rock standing`,
-        actual: column.stemmingM,
-        required: ceiling,
-      });
-    }
-    if (burden < rules.minimumBurdenM) {
-      violations.push({
-        rule: 'burden.minimum',
-        holeNumber: hole.holeNumber,
-        message: `a burden of ${burden} m is under the ${rules.minimumBurdenM} m floor`,
-        actual: burden,
-        required: rules.minimumBurdenM,
-      });
-    }
-    if (hole.nominalBurdenM && burden > hole.nominalBurdenM * rules.maximumBurdenRatio) {
-      violations.push({
-        rule: 'burden.excessive',
-        holeNumber: hole.holeNumber,
-        message: `a measured burden of ${burden} m is well past the ${hole.nominalBurdenM} m design`,
-        actual: burden,
-        required: roundTo(hole.nominalBurdenM * rules.maximumBurdenRatio, 3),
-      });
+    found.atLeast(
+      column.stemmingM,
+      floor,
+      'stemming.minimum',
+      `stemming of ${column.stemmingM} m is under the ${floor} m this hole needs`,
+      at,
+    );
+    found.atMost(
+      column.stemmingM,
+      maximumStemmingM(burden, rules),
+      'stemming.maximum',
+      `stemming of ${column.stemmingM} m will leave the collar rock standing`,
+      at,
+    );
+    found.atLeast(
+      burden,
+      rules.minimumBurdenM,
+      'burden.minimum',
+      `a burden of ${burden} m is under the ${rules.minimumBurdenM} m floor`,
+      at,
+    );
+    if (hole.nominalBurdenM) {
+      found.atMost(
+        burden,
+        roundTo(hole.nominalBurdenM * rules.maximumBurdenRatio, 3),
+        'burden.excessive',
+        `a measured burden of ${burden} m is well past the ${hole.nominalBurdenM} m design`,
+        at,
+      );
     }
   }
 
   const chargeDecks = column.decks.filter((deck) => deck.kind === 'charge');
-  if (chargeDecks.length === 0) {
-    violations.push({
-      rule: 'charge.missing',
-      holeNumber: hole.holeNumber,
-      message: 'the hole has no charge in it',
-    });
-  }
+  found.addIf(chargeDecks.length === 0, 'charge.missing', 'the hole has no charge in it', at);
   for (const deck of chargeDecks) {
-    if (deck.lengthM < rules.minimumChargeLengthM) {
-      violations.push({
-        rule: 'charge.deck_too_short',
-        holeNumber: hole.holeNumber,
-        message: `a charge deck of ${deck.lengthM} m is too short to fire reliably`,
-        actual: deck.lengthM,
-        required: rules.minimumChargeLengthM,
-      });
-    }
-    const longest = (rules.maximumChargeLengthDiameters * diameter) / 1000;
-    if (deck.lengthM > longest) {
-      violations.push({
-        rule: 'charge.deck_too_long',
-        holeNumber: hole.holeNumber,
-        message: `a charge deck of ${deck.lengthM} m runs past ${roundTo(longest, 1)} m`,
-        actual: deck.lengthM,
-        required: roundTo(longest, 3),
-      });
-    }
-    if (deck.primed && deck.boosterCount < rules.minimumBoosterPerDeck) {
-      violations.push({
-        rule: 'primer.missing',
-        holeNumber: hole.holeNumber,
-        message: 'a primed deck has no booster in it',
-      });
-    }
-    if (deck.boosterCount > rules.maximumBoosterPerDeck) {
-      violations.push({
-        rule: 'primer.excessive',
-        holeNumber: hole.holeNumber,
-        message: `${deck.boosterCount} boosters in one deck`,
-        actual: deck.boosterCount,
-        required: rules.maximumBoosterPerDeck,
-      });
-    }
+    found.atLeast(
+      deck.lengthM,
+      rules.minimumChargeLengthM,
+      'charge.deck_too_short',
+      `a charge deck of ${deck.lengthM} m is too short to fire reliably`,
+      at,
+    );
+    const longest = roundTo((rules.maximumChargeLengthDiameters * diameter) / 1000, 3);
+    found.atMost(
+      deck.lengthM,
+      longest,
+      'charge.deck_too_long',
+      `a charge deck of ${deck.lengthM} m runs past ${longest} m`,
+      at,
+    );
+    found.addIf(
+      deck.primed && deck.boosterCount < rules.minimumBoosterPerDeck,
+      'primer.missing',
+      'a primed deck has no booster in it',
+      at,
+    );
+    found.atMost(
+      deck.boosterCount,
+      rules.maximumBoosterPerDeck,
+      'primer.excessive',
+      `${deck.boosterCount} boosters in one deck`,
+      at,
+    );
   }
   for (const deck of column.decks.filter((item) => item.kind === 'inert')) {
-    if (deck.lengthM < rules.minimumDeckSeparationM) {
-      violations.push({
-        rule: 'deck.separation',
-        holeNumber: hole.holeNumber,
-        message: `${deck.lengthM} m between decks will let one shoot the other out`,
-        actual: deck.lengthM,
-        required: rules.minimumDeckSeparationM,
-      });
-    }
+    found.atLeast(
+      deck.lengthM,
+      rules.minimumDeckSeparationM,
+      'deck.separation',
+      `${deck.lengthM} m between decks will let one shoot the other out`,
+      at,
+    );
   }
-  if (chargeDecks.length > 0 && !chargeDecks.some((deck) => deck.primed)) {
-    violations.push({
-      rule: 'primer.none_in_hole',
-      holeNumber: hole.holeNumber,
-      message: 'nothing in the hole is primed',
-    });
-  }
-  return violations;
+  found.addIf(
+    chargeDecks.length > 0 && !chargeDecks.some((deck) => deck.primed),
+    'primer.none_in_hole',
+    'nothing in the hole is primed',
+    at,
+  );
+  return found.all();
 }
 
 /** Stemming material has to be angular chippings of about a tenth of the diameter. */
 export function checkStemmingMaterial(diameterMm, materialSizeMm, rules = DEFAULT_CHARGE_RULES) {
-  const violations = [];
-  if (materialSizeMm < rules.minimumStemmingSizeMm) {
-    violations.push({
-      rule: 'stemming.material_fine',
-      message: `${materialSizeMm} mm stemming is too fine to lock in the collar`,
-    });
-  }
-  const coarsest = diameterMm * rules.maximumStemmingSizeDiameterRatio;
-  if (materialSizeMm > coarsest) {
-    violations.push({
-      rule: 'stemming.material_coarse',
-      message: `${materialSizeMm} mm stemming will bridge in a ${diameterMm} mm hole`,
-    });
-  }
-  return violations;
+  return collector()
+    .atLeast(
+      materialSizeMm,
+      rules.minimumStemmingSizeMm,
+      'stemming.material_fine',
+      `${materialSizeMm} mm stemming is too fine to lock in the collar`,
+    )
+    .atMost(
+      materialSizeMm,
+      diameterMm * rules.maximumStemmingSizeDiameterRatio,
+      'stemming.material_coarse',
+      `${materialSizeMm} mm stemming will bridge in a ${diameterMm} mm hole`,
+    )
+    .all();
 }
 
 export function checkPattern(loadedHoles, rules = DEFAULT_CHARGE_RULES) {
   const violations = loadedHoles.flatMap(({ hole, column }) =>
     checkHoleCharge(hole, column, rules),
   );
-  const byRule = violations.reduce((tally, violation) => {
-    tally[violation.rule] = (tally[violation.rule] ?? 0) + 1;
-    return tally;
-  }, {});
   return {
     valid: violations.length === 0,
     violations,
-    byRule,
-    holesWithViolations: new Set(violations.map((violation) => violation.holeNumber)).size,
+    byRule: byRule(violations),
+    holesWithViolations: new Set(violations.map((item) => item.holeNumber)).size,
   };
 }
