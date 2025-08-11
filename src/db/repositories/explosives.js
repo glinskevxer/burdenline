@@ -1,0 +1,243 @@
+/**
+ * Products, batches, magazines and the ledger.
+ *
+ * The ledger is the only table in this system that is written to and never
+ * updated, and that is enforced here rather than by convention: there is no
+ * update function for it at all. A line entered wrongly is corrected by a
+ * correction line that points at it, which is what an inspector expects to see
+ * and what makes a balance reconstructible at any past moment.
+ */
+
+import { newId } from '../../lib/ids.js';
+import { ConflictError, ValidationError } from '../../lib/errors.js';
+import { inTransaction } from '../connection.js';
+import {
+  insertRow,
+  updateRow,
+  getById,
+  findById,
+  listWhere,
+  rowsToObjects,
+} from '../repository.js';
+import { canApply, signedQuantity, magazineState } from '../../domain/magazine/stock.js';
+
+export function createProduct(db, input, { clock }) {
+  const now = clock.now();
+  const product = {
+    id: input.id ?? newId('prod'),
+    code: input.code,
+    name: input.name,
+    kind: input.kind,
+    densityKgM3: input.densityKgM3 ?? null,
+    relativeWeightStrength: input.relativeWeightStrength ?? null,
+    velocityOfDetonationMs: input.velocityOfDetonationMs ?? null,
+    waterResistance: input.waterResistance ?? 'none',
+    minimumDiameterMm: input.minimumDiameterMm ?? null,
+    sleepTimeHours: input.sleepTimeHours ?? null,
+    unNumber: input.unNumber ?? null,
+    hazardDivision: input.hazardDivision ?? null,
+    compatibilityGroup: input.compatibilityGroup ?? null,
+    unitMassKg: input.unitMassKg ?? null,
+    isExplosive: input.isExplosive === false ? 0 : 1,
+    createdAt: now,
+    updatedAt: now,
+  };
+  insertRow(db, 'product', product);
+  return product;
+}
+
+export function getProduct(db, id) {
+  return getById(db, 'product', id, { kind: 'product' });
+}
+
+export function findProductByCode(db, code) {
+  const [found] = listWhere(db, 'product', { code }, { pageSize: 1 });
+  return found ?? null;
+}
+
+export function listProducts(db, options = {}) {
+  return listWhere(
+    db,
+    'product',
+    { kind: options.kind, retiredAt: null },
+    { orderBy: 'code', ...options },
+  );
+}
+
+export function retireProduct(db, id, { clock }) {
+  getProduct(db, id);
+  updateRow(db, 'product', id, { retiredAt: clock.now(), updatedAt: clock.now() });
+  return getProduct(db, id);
+}
+
+export function createMagazine(db, input, { clock }) {
+  getById(db, 'site', input.siteId, { kind: 'site' });
+  const now = clock.now();
+  const magazine = {
+    id: input.id ?? newId('mag'),
+    siteId: input.siteId,
+    name: input.name,
+    licenceNumber: input.licenceNumber ?? null,
+    kind: input.kind ?? 'store',
+    netExplosiveLimitKg: input.netExplosiveLimitKg,
+    detonatorLimit: input.detonatorLimit ?? null,
+    eastingM: input.eastingM ?? null,
+    northingM: input.northingM ?? null,
+    status: input.status ?? 'active',
+    createdAt: now,
+    updatedAt: now,
+  };
+  insertRow(db, 'magazine', magazine);
+  return magazine;
+}
+
+export function getMagazine(db, id) {
+  return getById(db, 'magazine', id, { kind: 'magazine' });
+}
+
+export function listMagazines(db, siteId) {
+  return listWhere(db, 'magazine', { siteId }, { orderBy: 'name' });
+}
+
+export function createBatch(db, input, { clock }) {
+  getProduct(db, input.productId);
+  const now = clock.now();
+  const batch = {
+    id: input.id ?? newId('batch'),
+    productId: input.productId,
+    batchCode: input.batchCode,
+    manufacturedOn: input.manufacturedOn ?? null,
+    expiresOn: input.expiresOn ?? null,
+    receivedAt: input.receivedAt ?? now,
+    supplier: input.supplier ?? null,
+    deliveryNote: input.deliveryNote ?? null,
+    createdAt: now,
+    updatedAt: now,
+  };
+  insertRow(db, 'product_batch', batch);
+  return batch;
+}
+
+export function getBatch(db, id) {
+  return getById(db, 'product_batch', id, { kind: 'batch' });
+}
+
+export function listBatches(db, productId) {
+  return listWhere(db, 'product_batch', { productId }, { orderBy: 'expires_on' });
+}
+
+export function ledgerFor(db, magazineId, options = {}) {
+  const rows = db
+    .prepare(
+      `SELECT l.*, b.batch_code, p.code AS product_code, p.kind AS product_kind
+       FROM magazine_ledger l
+       JOIN product_batch b ON b.id = l.batch_id
+       JOIN product p ON p.id = b.product_id
+       WHERE l.magazine_id = ?
+         AND (@from IS NULL OR l.occurred_at >= @from)
+         AND (@to IS NULL OR l.occurred_at <= @to)
+       ORDER BY l.occurred_at, l.id`.replace('?', '@magazineId'),
+    )
+    .all({ magazineId, from: options.from ?? null, to: options.to ?? null });
+  return rowsToObjects(rows);
+}
+
+export function ledgerForBlast(db, blastId) {
+  const rows = db
+    .prepare(
+      `SELECT l.*, b.batch_code, p.code AS product_code
+       FROM magazine_ledger l
+       JOIN product_batch b ON b.id = l.batch_id
+       JOIN product p ON p.id = b.product_id
+       WHERE l.blast_id = @blastId
+       ORDER BY l.occurred_at, l.id`,
+    )
+    .all({ blastId });
+  return rowsToObjects(rows);
+}
+
+/**
+ * Append a movement. The check and the write happen in one transaction so that
+ * two people issuing from the same magazine at once cannot both be told there is
+ * room.
+ */
+export function recordMovement(db, input, { clock }) {
+  const magazine = getMagazine(db, input.magazineId);
+  getBatch(db, input.batchId);
+  const now = clock.now();
+  return inTransaction(db, () => {
+    const existing = ledgerFor(db, input.magazineId);
+    const check = canApply(
+      {
+        movement: input.movement,
+        quantity: input.quantity,
+        massKg: input.massKg,
+        batchId: input.batchId,
+      },
+      magazine,
+      existing,
+      { batchIsDetonator: input.batchIsDetonator },
+    );
+    if (!check.valid && !input.force) {
+      throw new ConflictError('that movement cannot be made', { violations: check.violations });
+    }
+    const quantity = signedQuantity(input.movement, input.quantity);
+    const line = {
+      id: input.id ?? newId('led'),
+      magazineId: input.magazineId,
+      batchId: input.batchId,
+      movement: input.movement,
+      quantity,
+      unit: input.unit ?? 'kg',
+      massKg: input.massKg === undefined ? quantity : Math.sign(quantity) * Math.abs(input.massKg),
+      occurredAt: input.occurredAt ?? now,
+      recordedAt: now,
+      personId: input.personId ?? null,
+      blastId: input.blastId ?? null,
+      reference: input.reference ?? null,
+      reason: input.reason ?? null,
+      correctsId: input.correctsId ?? null,
+      createdAt: now,
+    };
+    insertRow(db, 'magazine_ledger', line);
+    return line;
+  });
+}
+
+export function correctMovement(db, { ledgerId, quantity, reason, personId }, { clock }) {
+  const original = findById(db, 'magazine_ledger', ledgerId);
+  if (!original) {
+    throw new ValidationError('there is no ledger line to correct', [
+      { path: 'ledgerId', message: 'unknown line', kind: 'missing' },
+    ]);
+  }
+  if (!reason || reason.trim().length < 5) {
+    throw new ValidationError('a correction needs a reason', [
+      { path: 'reason', message: 'say why the line was wrong', kind: 'missing' },
+    ]);
+  }
+  const now = clock.now();
+  const line = {
+    id: newId('led'),
+    magazineId: original.magazineId,
+    batchId: original.batchId,
+    movement: 'correction',
+    quantity,
+    unit: original.unit,
+    massKg: quantity,
+    occurredAt: now,
+    recordedAt: now,
+    personId: personId ?? null,
+    blastId: original.blastId,
+    reason,
+    correctsId: ledgerId,
+    createdAt: now,
+  };
+  insertRow(db, 'magazine_ledger', line);
+  return line;
+}
+
+export function stockFor(db, magazineId, options = {}) {
+  const magazine = getMagazine(db, magazineId);
+  return magazineState(magazine, ledgerFor(db, magazineId, options), options);
+}
