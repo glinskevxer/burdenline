@@ -9,27 +9,29 @@
  * easting one.
  */
 
+import { requireFinite } from '../../lib/guards.js';
+
 const TWO_PI = Math.PI * 2;
 
 export function point(easting, northing, level = 0) {
-  assertNumber(easting, 'easting');
-  assertNumber(northing, 'northing');
-  assertNumber(level, 'level');
+  requireFinite(easting, 'easting');
+  requireFinite(northing, 'northing');
+  requireFinite(level, 'level');
   return Object.freeze({ easting, northing, level });
 }
 
 export function toRadians(degrees) {
-  assertNumber(degrees, 'degrees');
+  requireFinite(degrees, 'degrees');
   return (degrees * Math.PI) / 180;
 }
 
 export function toDegrees(radians) {
-  assertNumber(radians, 'radians');
+  requireFinite(radians, 'radians');
   return (radians * 180) / Math.PI;
 }
 
 export function normaliseBearing(degrees) {
-  assertNumber(degrees, 'degrees');
+  requireFinite(degrees, 'degrees');
   const wrapped = degrees % 360;
   return wrapped < 0 ? wrapped + 360 : wrapped;
 }
@@ -57,7 +59,7 @@ export function bearingBetween(from, to) {
 
 /** Step a given distance along a bearing, staying at the same level. */
 export function offsetBy(origin, bearingDegrees, distance) {
-  assertNumber(distance, 'distance');
+  requireFinite(distance, 'distance');
   const radians = toRadians(normaliseBearing(bearingDegrees));
   return point(
     origin.easting + Math.sin(radians) * distance,
@@ -170,12 +172,6 @@ export function boundingBox(points) {
       maxNorthing: -Infinity,
     },
   );
-}
-
-function assertNumber(value, name) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    throw new TypeError(`${name} must be a finite number`);
-  }
 }
 
 export const constants = { TWO_PI };

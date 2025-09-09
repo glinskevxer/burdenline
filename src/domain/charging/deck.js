@@ -10,6 +10,7 @@
  */
 
 import { ValidationError } from '../../lib/errors.js';
+import { requirePositive } from '../../lib/guards.js';
 import { roundTo } from '../../lib/units.js';
 import { kgPerMetre, isBulk } from './products.js';
 
@@ -201,12 +202,4 @@ function resolveLength(charge, diameterMm, index) {
   throw new ValidationError('a charge needs a mass or a length', [
     { path: `charges.${index}`, message: 'neither mass nor length given', kind: 'missing' },
   ]);
-}
-
-function requirePositive(value, name) {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-    throw new ValidationError(`${name} has to be a positive number`, [
-      { path: name, message: 'must be greater than zero', kind: 'range' },
-    ]);
-  }
 }

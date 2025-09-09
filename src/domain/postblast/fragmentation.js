@@ -17,6 +17,7 @@
  */
 
 import { ValidationError } from '../../lib/errors.js';
+import { requirePositive } from '../../lib/guards.js';
 import { roundTo } from '../../lib/units.js';
 
 /** Lilly rock factor inputs, which a geologist scores off the face. */
@@ -157,12 +158,4 @@ export function compare(baseline, alternative) {
         : roundTo(second.oversizeFraction - first.oversizeFraction, 4),
     better: second.oversizeFraction !== null && second.oversizeFraction < first.oversizeFraction,
   };
-}
-
-function requirePositive(value, name) {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-    throw new ValidationError(`${name} has to be positive`, [
-      { path: name, message: 'must be greater than zero', kind: 'range' },
-    ]);
-  }
 }

@@ -15,6 +15,7 @@ import {
   centroid,
   boundingBox,
 } from '../../../src/domain/geometry/points.js';
+import { ValidationError } from '../../../src/lib/errors.js';
 
 describe('point', () => {
   it('defaults the level to datum and freezes what it makes', () => {
@@ -23,9 +24,9 @@ describe('point', () => {
     expect(Object.isFrozen(p)).toBe(true);
   });
 
-  it('refuses a coordinate that is not a number', () => {
-    expect(() => point('10', 20)).toThrow(TypeError);
-    expect(() => point(10, Number.NaN)).toThrow(TypeError);
+  it('refuses a coordinate that is not a number and names it', () => {
+    expect(() => point('10', 20)).toThrow(ValidationError);
+    expect(() => point(10, Number.NaN)).toThrow(ValidationError);
   });
 });
 

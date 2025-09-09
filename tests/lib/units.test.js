@@ -18,6 +18,7 @@ import {
   ceilToStep,
   clamp,
 } from '../../src/lib/units.js';
+import { ValidationError } from '../../src/lib/errors.js';
 
 describe('length conversions', () => {
   it('turns a 102 mm hole diameter into metres', () => {
@@ -130,9 +131,14 @@ describe('clamp', () => {
 });
 
 describe('argument checking', () => {
-  it('rejects anything that is not a finite number', () => {
-    expect(() => mmToMetres('102')).toThrow(TypeError);
-    expect(() => tonnesToKg(Number.NaN)).toThrow(TypeError);
-    expect(() => clamp(Number.POSITIVE_INFINITY, 0, 1)).toThrow(TypeError);
+  it('rejects anything that is not a finite number and names the argument', () => {
+    expect(() => mmToMetres('102')).toThrow(ValidationError);
+    expect(() => tonnesToKg(Number.NaN)).toThrow(ValidationError);
+    expect(() => clamp(Number.POSITIVE_INFINITY, 0, 1)).toThrow(ValidationError);
+    try {
+      mmToMetres('102');
+    } catch (error) {
+      expect(error.issues[0].path).toBe('mm');
+    }
   });
 });

@@ -10,6 +10,7 @@
  */
 
 import { newId } from '../../lib/ids.js';
+import { pick } from '../../lib/guards.js';
 import { ConflictError, ValidationError } from '../../lib/errors.js';
 import { inTransaction } from '../connection.js';
 import {
@@ -188,14 +189,4 @@ export function holeCount(db, patternId) {
 
 export function findPattern(db, id) {
   return findById(db, 'pattern', id);
-}
-
-function pick(source, keys) {
-  const out = {};
-  for (const key of keys) {
-    if (source[key] !== undefined) {
-      out[key] = source[key];
-    }
-  }
-  return out;
 }

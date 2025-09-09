@@ -8,6 +8,8 @@
  * seismograph vendors still emit has exactly one place to be normalised.
  */
 
+import { requireFinite } from './guards.js';
+
 const MM_PER_M = 1000;
 const FEET_PER_M = 3.280839895013123;
 const INCH_PER_MM = 0.03937007874015748;
@@ -129,11 +131,3 @@ export function clamp(value, min, max) {
   }
   return Math.min(Math.max(value, min), max);
 }
-
-function requireFinite(value, name) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    throw new TypeError(`${name} must be a finite number`);
-  }
-}
-
-export const __testing = { requireFinite };

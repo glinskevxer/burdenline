@@ -9,6 +9,7 @@
  */
 
 import { newId } from '../../lib/ids.js';
+import { pick } from '../../lib/guards.js';
 import { NotFoundError, ConflictError } from '../../lib/errors.js';
 import {
   insertRow,
@@ -136,14 +137,4 @@ export function deleteSite(db, id) {
     throw new NotFoundError('site', id);
   }
   return removed;
-}
-
-function pick(source, keys) {
-  const out = {};
-  for (const key of keys) {
-    if (source[key] !== undefined) {
-      out[key] = source[key];
-    }
-  }
-  return out;
 }

@@ -10,6 +10,7 @@
  */
 
 import { ValidationError } from '../../lib/errors.js';
+import { requirePositive, requireNonNegative } from '../../lib/guards.js';
 import { roundTo } from '../../lib/units.js';
 
 /** What a rock type will usually take, in kilograms per cubic metre. */
@@ -110,20 +111,4 @@ export function distribution(rows) {
     mean: roundTo(mean, 4),
     even: mean === 0 ? true : (highest - lowest) / mean <= 0.2,
   };
-}
-
-function requirePositive(value, name) {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-    throw new ValidationError(`${name} has to be positive`, [
-      { path: name, message: 'must be greater than zero', kind: 'range' },
-    ]);
-  }
-}
-
-function requireNonNegative(value, name) {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
-    throw new ValidationError(`${name} cannot be negative`, [
-      { path: name, message: 'must be zero or more', kind: 'range' },
-    ]);
-  }
 }

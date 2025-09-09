@@ -18,6 +18,7 @@
  */
 
 import { ValidationError } from '../../lib/errors.js';
+import { requirePositive } from '../../lib/guards.js';
 import { roundTo } from '../../lib/units.js';
 
 export const SCALING = ['square_root', 'cube_root'];
@@ -161,12 +162,4 @@ export function extrapolation(fit, sd) {
       ? fit.scaledDistanceRange.low / sd
       : sd / fit.scaledDistanceRange.high;
   return { extrapolating: true, factor: roundTo(factor, 3) };
-}
-
-function requirePositive(value, name) {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-    throw new ValidationError(`${name} has to be positive`, [
-      { path: name, message: 'must be greater than zero', kind: 'range' },
-    ]);
-  }
 }

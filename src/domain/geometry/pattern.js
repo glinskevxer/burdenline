@@ -11,6 +11,7 @@
 
 import { z } from 'zod';
 import { ValidationError } from '../../lib/errors.js';
+import { requirePositive, requireWholeNumber } from '../../lib/guards.js';
 import { roundTo } from '../../lib/units.js';
 import { point, offsetBy, normaliseBearing } from './points.js';
 import { drilledLength } from './hole.js';
@@ -103,11 +104,7 @@ export function volumePerHole({ burdenM, spacingM, benchHeightM }) {
 }
 
 export function patternVolume({ burdenM, spacingM, benchHeightM, holeCount }) {
-  if (!Number.isInteger(holeCount) || holeCount < 1) {
-    throw new ValidationError('a pattern needs at least one hole', [
-      { path: 'holeCount', message: 'must be a positive whole number', kind: 'range' },
-    ]);
-  }
+  requireWholeNumber(holeCount, 'holeCount');
   return roundTo(volumePerHole({ burdenM, spacingM, benchHeightM }) * holeCount, 3);
 }
 
@@ -154,12 +151,4 @@ export function summarisePattern(design, holes) {
     spacingToBurden: spacingToBurdenRatio(design),
     stiffness: stiffnessRatio(design),
   };
-}
-
-function requirePositive(value, name) {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-    throw new ValidationError(`${name} has to be a positive number`, [
-      { path: name, message: 'must be greater than zero', kind: 'range' },
-    ]);
-  }
 }

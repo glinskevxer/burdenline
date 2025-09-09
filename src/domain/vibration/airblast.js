@@ -15,6 +15,7 @@
  */
 
 import { ValidationError } from '../../lib/errors.js';
+import { requirePositive } from '../../lib/guards.js';
 import { roundTo, pascalsToDecibels } from '../../lib/units.js';
 import { bearingDifference } from '../geometry/points.js';
 
@@ -129,12 +130,4 @@ export function chargeForAirblastLimit({
 /** Overpressure in pascals, which is what an old monitor sometimes reports. */
 export function decibelsFromPascals(pascals) {
   return roundTo(pascalsToDecibels(pascals), 2);
-}
-
-function requirePositive(value, name) {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-    throw new ValidationError(`${name} has to be positive`, [
-      { path: name, message: 'must be greater than zero', kind: 'range' },
-    ]);
-  }
 }
