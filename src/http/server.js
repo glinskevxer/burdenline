@@ -24,6 +24,17 @@ export async function buildServer({ config, db, clock, services = {}, logger } =
     bodyLimit: config?.http?.bodyLimitBytes ?? 1024 * 1024,
     trustProxy: config?.http?.trustProxy ?? false,
     disableRequestLogging: true,
+    ajv: {
+      customOptions: {
+        // Fastify strips unknown properties by default. A body carrying a field
+        // nobody defined is nearly always a caller working from an out of date
+        // idea of the api, and silently dropping it hides that until something
+        // downstream is missing a value.
+        removeAdditional: false,
+        allErrors: true,
+        coerceTypes: false,
+      },
+    },
   });
 
   app.decorate('deps', { config, db, clock, services, logger: log });
