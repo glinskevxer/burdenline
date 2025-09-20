@@ -10,11 +10,13 @@
 import { buildServer } from './server.js';
 import { registerAuth, authRoutes } from './plugins/auth.js';
 import { siteRoutes } from './routes/sites.js';
+import { patternRoutes } from './routes/patterns.js';
 
 export async function buildApp(options) {
   const app = await buildServer(options);
   await registerAuth(app, { config: options.config });
   authRoutes(app);
   siteRoutes(app);
+  patternRoutes(app);
   return app;
 }
