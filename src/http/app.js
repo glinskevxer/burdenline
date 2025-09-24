@@ -11,6 +11,7 @@ import { buildServer } from './server.js';
 import { registerAuth, authRoutes } from './plugins/auth.js';
 import { siteRoutes } from './routes/sites.js';
 import { patternRoutes } from './routes/patterns.js';
+import { blastRoutes } from './routes/blasts.js';
 
 export async function buildApp(options) {
   const app = await buildServer(options);
@@ -18,5 +19,6 @@ export async function buildApp(options) {
   authRoutes(app);
   siteRoutes(app);
   patternRoutes(app);
+  blastRoutes(app);
   return app;
 }
