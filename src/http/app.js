@@ -14,6 +14,7 @@ import { patternRoutes } from './routes/patterns.js';
 import { blastRoutes } from './routes/blasts.js';
 import { firingRoutes } from './routes/firing.js';
 import { magazineRoutes } from './routes/magazine.js';
+import { monitoringRoutes } from './routes/monitoring.js';
 
 export async function buildApp(options) {
   const app = await buildServer(options);
@@ -24,5 +25,6 @@ export async function buildApp(options) {
   blastRoutes(app);
   firingRoutes(app);
   magazineRoutes(app);
+  monitoringRoutes(app);
   return app;
 }
