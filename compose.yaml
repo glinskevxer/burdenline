@@ -1,0 +1,38 @@
+# For running the thing locally against a real file rather than an in memory
+# database. There is no database service because there is no database server:
+# the store is a file on a volume, which is the whole reason this deploys onto a
+# machine in a quarry office with no operations team behind it.
+
+services:
+  burdenline:
+    build: .
+    image: burdenline:local
+    environment:
+      NODE_ENV: production
+      BURDENLINE_PORT: '8080'
+      BURDENLINE_DB: /data/burdenline.db
+      BURDENLINE_LOG_LEVEL: info
+      BURDENLINE_SITE_ZONE: Europe/Dublin
+      BURDENLINE_JWT_SECRET: ${BURDENLINE_JWT_SECRET:?set a signing secret before starting}
+    ports:
+      - '8080:8080'
+    volumes:
+      - burdenline-data:/data
+    restart: unless-stopped
+    stop_grace_period: 15s
+
+  backup:
+    image: burdenline:local
+    profiles: ['backup']
+    depends_on:
+      - burdenline
+    environment:
+      BURDENLINE_DB: /data/burdenline.db
+      BURDENLINE_JWT_SECRET: ${BURDENLINE_JWT_SECRET:?set a signing secret before starting}
+    volumes:
+      - burdenline-data:/data
+      - ./backups:/backups
+    entrypoint: ['node', 'scripts/backup.js', '--out', '/backups']
+
+volumes:
+  burdenline-data:

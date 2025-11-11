@@ -1,0 +1,10 @@
+node_modules
+coverage
+tests
+data
+.git
+.github
+*.md
+.env
+.env.*
+.vscode

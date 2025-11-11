@@ -18,7 +18,8 @@
     "coverage": "vitest run --coverage",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "backup": "node scripts/backup.js"
   },
   "dependencies": {
     "@fastify/cors": "10.0.2",
