@@ -1,0 +1,4 @@
+{
+  "note": "Advisories that have been read and accepted, each with a reason and a date to look again. Anything not on this list fails the audit job.",
+  "accepted": []
+}
