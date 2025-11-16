@@ -19,7 +19,9 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "backup": "node scripts/backup.js"
+    "backup": "node scripts/backup.js",
+    "export-check": "node scripts/export-check.js",
+    "audit": "node scripts/audit-dependencies.js"
   },
   "dependencies": {
     "@fastify/cors": "10.0.2",
