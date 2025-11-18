@@ -4,6 +4,7 @@ import { runMigrations } from '../../../src/db/migrate.js';
 import { migration as core } from '../../../src/db/migrations/001_core.js';
 import { migration as explosives } from '../../../src/db/migrations/002_explosives.js';
 import { migration as blasting } from '../../../src/db/migrations/003_blasting.js';
+import { migration as operations } from '../../../src/db/migrations/004_operations.js';
 import { createSite, createBench } from '../../../src/db/repositories/sites.js';
 import { createPattern, replaceHoles, listHoles } from '../../../src/db/repositories/patterns.js';
 import {
@@ -45,7 +46,7 @@ function approve(id) {
 
 beforeEach(() => {
   db = openDatabase({ database: { file: ':memory:' } });
-  runMigrations(db, [core, explosives, blasting]);
+  runMigrations(db, [core, explosives, blasting, operations]);
   siteId = createSite(db, { code: 'MDW', name: 'Midway' }, context).id;
   for (const [id, name] of [
     ['per_1', 'M Cronin'],

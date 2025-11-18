@@ -4,6 +4,7 @@ import { runMigrations } from '../../../src/db/migrate.js';
 import { migration as core } from '../../../src/db/migrations/001_core.js';
 import { migration as explosives } from '../../../src/db/migrations/002_explosives.js';
 import { migration as blasting } from '../../../src/db/migrations/003_blasting.js';
+import { migration as operations } from '../../../src/db/migrations/004_operations.js';
 import {
   createSite,
   findSite,
@@ -53,7 +54,7 @@ function bench(siteId, overrides = {}) {
 
 beforeEach(() => {
   db = openDatabase({ database: { file: ':memory:' } });
-  runMigrations(db, [core, explosives, blasting]);
+  runMigrations(db, [core, explosives, blasting, operations]);
 });
 
 afterEach(() => closeDatabase(db));

@@ -4,6 +4,7 @@ import { runMigrations } from '../../src/db/migrate.js';
 import { migration as core } from '../../src/db/migrations/001_core.js';
 import { migration as explosives } from '../../src/db/migrations/002_explosives.js';
 import { migration as blasting } from '../../src/db/migrations/003_blasting.js';
+import { migration as operations } from '../../src/db/migrations/004_operations.js';
 import { createSite } from '../../src/db/repositories/sites.js';
 import { createReceptor } from '../../src/db/repositories/monitoring.js';
 import { createBlast, transition, getBlast } from '../../src/db/repositories/blasts.js';
@@ -84,7 +85,7 @@ function gateInputs() {
 
 beforeEach(() => {
   db = openDatabase({ database: { file: ':memory:' } });
-  runMigrations(db, [core, explosives, blasting]);
+  runMigrations(db, [core, explosives, blasting, operations]);
   service = createFiringService({ db, clock, logger: silentLogger() });
   siteId = createSite(db, { code: 'MDW', name: 'Midway', timeZone: zone }, context).id;
   insertRow(db, 'person', {
