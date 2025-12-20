@@ -17,6 +17,7 @@ import { magazineRoutes } from './routes/magazine.js';
 import { monitoringRoutes } from './routes/monitoring.js';
 import { designRoutes } from './routes/design.js';
 import { postblastRoutes } from './routes/postblast.js';
+import { complaintRoutes } from './routes/complaints.js';
 
 export async function buildApp(options) {
   const app = await buildServer(options);
@@ -30,5 +31,6 @@ export async function buildApp(options) {
   monitoringRoutes(app);
   designRoutes(app);
   postblastRoutes(app);
+  complaintRoutes(app);
   return app;
 }
