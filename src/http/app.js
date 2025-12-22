@@ -18,6 +18,7 @@ import { monitoringRoutes } from './routes/monitoring.js';
 import { designRoutes } from './routes/design.js';
 import { postblastRoutes } from './routes/postblast.js';
 import { complaintRoutes } from './routes/complaints.js';
+import { reportRoutes } from './routes/reports.js';
 
 export async function buildApp(options) {
   const app = await buildServer(options);
@@ -32,5 +33,6 @@ export async function buildApp(options) {
   designRoutes(app);
   postblastRoutes(app);
   complaintRoutes(app);
+  reportRoutes(app);
   return app;
 }
