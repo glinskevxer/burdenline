@@ -9,6 +9,7 @@
  */
 
 import { newId } from '../../lib/ids.js';
+import { pick } from '../../lib/guards.js';
 import { ConflictError, ValidationError } from '../../lib/errors.js';
 import { inTransaction } from '../connection.js';
 import {
@@ -18,32 +19,50 @@ import {
   findById,
   listWhere,
   rowsToObjects,
+  createRecord,
 } from '../repository.js';
 import { canApply, signedQuantity, magazineState } from '../../domain/magazine/stock.js';
 
 export function createProduct(db, input, { clock }) {
-  const now = clock.now();
-  const product = {
-    id: input.id ?? newId('prod'),
-    code: input.code,
-    name: input.name,
-    kind: input.kind,
-    densityKgM3: input.densityKgM3 ?? null,
-    relativeWeightStrength: input.relativeWeightStrength ?? null,
-    velocityOfDetonationMs: input.velocityOfDetonationMs ?? null,
-    waterResistance: input.waterResistance ?? 'none',
-    minimumDiameterMm: input.minimumDiameterMm ?? null,
-    sleepTimeHours: input.sleepTimeHours ?? null,
-    unNumber: input.unNumber ?? null,
-    hazardDivision: input.hazardDivision ?? null,
-    compatibilityGroup: input.compatibilityGroup ?? null,
-    unitMassKg: input.unitMassKg ?? null,
-    isExplosive: input.isExplosive === false ? 0 : 1,
-    createdAt: now,
-    updatedAt: now,
-  };
-  insertRow(db, 'product', product);
-  return product;
+  return createRecord(
+    db,
+    {
+      table: 'product',
+      prefix: 'prod',
+      defaults: {
+        densityKgM3: null,
+        relativeWeightStrength: null,
+        velocityOfDetonationMs: null,
+        waterResistance: 'none',
+        minimumDiameterMm: null,
+        sleepTimeHours: null,
+        unNumber: null,
+        hazardDivision: null,
+        compatibilityGroup: null,
+        unitMassKg: null,
+      },
+    },
+    {
+      ...pick(input, [
+        'id',
+        'code',
+        'name',
+        'kind',
+        'densityKgM3',
+        'relativeWeightStrength',
+        'velocityOfDetonationMs',
+        'waterResistance',
+        'minimumDiameterMm',
+        'sleepTimeHours',
+        'unNumber',
+        'hazardDivision',
+        'compatibilityGroup',
+        'unitMassKg',
+      ]),
+      isExplosive: input.isExplosive === false ? 0 : 1,
+    },
+    { clock },
+  );
 }
 
 export function getProduct(db, id) {
@@ -72,23 +91,34 @@ export function retireProduct(db, id, { clock }) {
 
 export function createMagazine(db, input, { clock }) {
   getById(db, 'site', input.siteId, { kind: 'site' });
-  const now = clock.now();
-  const magazine = {
-    id: input.id ?? newId('mag'),
-    siteId: input.siteId,
-    name: input.name,
-    licenceNumber: input.licenceNumber ?? null,
-    kind: input.kind ?? 'store',
-    netExplosiveLimitKg: input.netExplosiveLimitKg,
-    detonatorLimit: input.detonatorLimit ?? null,
-    eastingM: input.eastingM ?? null,
-    northingM: input.northingM ?? null,
-    status: input.status ?? 'active',
-    createdAt: now,
-    updatedAt: now,
-  };
-  insertRow(db, 'magazine', magazine);
-  return magazine;
+  return createRecord(
+    db,
+    {
+      table: 'magazine',
+      prefix: 'mag',
+      defaults: {
+        licenceNumber: null,
+        kind: 'store',
+        detonatorLimit: null,
+        eastingM: null,
+        northingM: null,
+        status: 'active',
+      },
+    },
+    pick(input, [
+      'id',
+      'siteId',
+      'name',
+      'licenceNumber',
+      'kind',
+      'netExplosiveLimitKg',
+      'detonatorLimit',
+      'eastingM',
+      'northingM',
+      'status',
+    ]),
+    { clock },
+  );
 }
 
 export function getMagazine(db, id) {
@@ -101,21 +131,31 @@ export function listMagazines(db, siteId) {
 
 export function createBatch(db, input, { clock }) {
   getProduct(db, input.productId);
-  const now = clock.now();
-  const batch = {
-    id: input.id ?? newId('batch'),
-    productId: input.productId,
-    batchCode: input.batchCode,
-    manufacturedOn: input.manufacturedOn ?? null,
-    expiresOn: input.expiresOn ?? null,
-    receivedAt: input.receivedAt ?? now,
-    supplier: input.supplier ?? null,
-    deliveryNote: input.deliveryNote ?? null,
-    createdAt: now,
-    updatedAt: now,
-  };
-  insertRow(db, 'product_batch', batch);
-  return batch;
+  return createRecord(
+    db,
+    {
+      table: 'product_batch',
+      prefix: 'batch',
+      defaults: {
+        manufacturedOn: null,
+        expiresOn: null,
+        supplier: null,
+        deliveryNote: null,
+        receivedAt: clock.now(),
+      },
+    },
+    pick(input, [
+      'id',
+      'productId',
+      'batchCode',
+      'manufacturedOn',
+      'expiresOn',
+      'receivedAt',
+      'supplier',
+      'deliveryNote',
+    ]),
+    { clock },
+  );
 }
 
 export function getBatch(db, id) {

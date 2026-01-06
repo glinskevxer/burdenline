@@ -21,31 +21,45 @@ import {
   findById,
   listWhere,
   rowsToObjects,
+  createRecord,
 } from '../repository.js';
 
 export function createReceptor(db, input, { clock }) {
   getById(db, 'site', input.siteId, { kind: 'site' });
-  const now = clock.now();
-  const receptor = {
-    id: input.id ?? newId('rec'),
-    siteId: input.siteId,
-    name: input.name,
-    structureClass: input.structureClass,
-    eastingM: input.easting ?? input.eastingM,
-    northingM: input.northing ?? input.northingM,
-    levelM: input.level ?? input.levelM ?? 0,
-    occupied: input.occupied === false ? 0 : 1,
-    limitMmPerSecond: input.limitMmPerSecond ?? null,
-    airblastLimitDb: input.airblastLimitDb ?? null,
-    typicalFrequencyHz: input.typicalFrequencyHz ?? null,
-    monitored: input.monitored ? 1 : 0,
-    notifiable: input.notifiable ? 1 : 0,
-    note: input.note ?? null,
-    createdAt: now,
-    updatedAt: now,
-  };
-  insertRow(db, 'receptor', receptor);
-  return receptor;
+  return createRecord(
+    db,
+    {
+      table: 'receptor',
+      prefix: 'rec',
+      defaults: {
+        levelM: 0,
+        occupied: 1,
+        limitMmPerSecond: null,
+        airblastLimitDb: null,
+        typicalFrequencyHz: null,
+        monitored: 0,
+        notifiable: 0,
+        note: null,
+      },
+    },
+    {
+      id: input.id,
+      siteId: input.siteId,
+      name: input.name,
+      structureClass: input.structureClass,
+      eastingM: input.easting ?? input.eastingM,
+      northingM: input.northing ?? input.northingM,
+      levelM: input.level ?? input.levelM,
+      occupied: input.occupied === false ? 0 : 1,
+      limitMmPerSecond: input.limitMmPerSecond,
+      airblastLimitDb: input.airblastLimitDb,
+      typicalFrequencyHz: input.typicalFrequencyHz,
+      monitored: input.monitored ? 1 : 0,
+      notifiable: input.notifiable ? 1 : 0,
+      note: input.note,
+    },
+    { clock },
+  );
 }
 
 export function getReceptor(db, id) {

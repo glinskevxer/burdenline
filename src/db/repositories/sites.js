@@ -8,33 +8,29 @@
  * over HTTP.
  */
 
-import { newId } from '../../lib/ids.js';
 import { pick } from '../../lib/guards.js';
 import { NotFoundError, ConflictError } from '../../lib/errors.js';
 import {
-  insertRow,
-  updateRow,
   findById,
   getById,
   listWhere,
   countWhere,
   deleteRow,
+  createRecord,
+  updateRecord,
 } from '../repository.js';
 
 export function createSite(db, input, { clock }) {
-  const now = clock.now();
-  const site = {
-    id: input.id ?? newId('site'),
-    code: input.code,
-    name: input.name,
-    timeZone: input.timeZone ?? 'UTC',
-    licenceNumber: input.licenceNumber ?? null,
-    gridEpsg: input.gridEpsg ?? null,
-    createdAt: now,
-    updatedAt: now,
-  };
-  insertRow(db, 'site', site);
-  return site;
+  return createRecord(
+    db,
+    {
+      table: 'site',
+      prefix: 'site',
+      defaults: { timeZone: 'UTC', licenceNumber: null, gridEpsg: null },
+    },
+    pick(input, ['id', 'code', 'name', 'timeZone', 'licenceNumber', 'gridEpsg']),
+    { clock },
+  );
 }
 
 export function findSite(db, id) {
@@ -55,30 +51,33 @@ export function listSites(db, options = {}) {
 }
 
 export function updateSite(db, id, changes, { clock }) {
-  getSite(db, id);
-  const allowed = pick(changes, ['name', 'timeZone', 'licenceNumber', 'gridEpsg']);
-  updateRow(db, 'site', id, { ...allowed, updatedAt: clock.now() });
-  return getSite(db, id);
+  return updateRecord(
+    db,
+    { table: 'site', kind: 'site', updatable: ['name', 'timeZone', 'licenceNumber', 'gridEpsg'] },
+    id,
+    changes,
+    { clock },
+  );
 }
 
 export function createBench(db, input, { clock }) {
   getSite(db, input.siteId);
-  const now = clock.now();
-  const bench = {
-    id: input.id ?? newId('bench'),
-    siteId: input.siteId,
-    name: input.name,
-    crestLevelM: input.crestLevelM,
-    toeLevelM: input.toeLevelM,
-    rockType: input.rockType,
-    rockDensityKgM3: input.rockDensityKgM3,
-    ucsMpa: input.ucsMpa ?? null,
-    status: input.status ?? 'active',
-    createdAt: now,
-    updatedAt: now,
-  };
-  insertRow(db, 'bench', bench);
-  return bench;
+  return createRecord(
+    db,
+    { table: 'bench', prefix: 'bench', defaults: { ucsMpa: null, status: 'active' } },
+    pick(input, [
+      'id',
+      'siteId',
+      'name',
+      'crestLevelM',
+      'toeLevelM',
+      'rockType',
+      'rockDensityKgM3',
+      'ucsMpa',
+      'status',
+    ]),
+    { clock },
+  );
 }
 
 export function getBench(db, id) {
@@ -95,18 +94,25 @@ export function listBenches(db, siteId, options = {}) {
 }
 
 export function updateBench(db, id, changes, { clock }) {
-  getBench(db, id);
-  const allowed = pick(changes, [
-    'name',
-    'crestLevelM',
-    'toeLevelM',
-    'rockType',
-    'rockDensityKgM3',
-    'ucsMpa',
-    'status',
-  ]);
-  updateRow(db, 'bench', id, { ...allowed, updatedAt: clock.now() });
-  return getBench(db, id);
+  return updateRecord(
+    db,
+    {
+      table: 'bench',
+      kind: 'bench',
+      updatable: [
+        'name',
+        'crestLevelM',
+        'toeLevelM',
+        'rockType',
+        'rockDensityKgM3',
+        'ucsMpa',
+        'status',
+      ],
+    },
+    id,
+    changes,
+    { clock },
+  );
 }
 
 /** Bench height, which is the number every design starts from. */

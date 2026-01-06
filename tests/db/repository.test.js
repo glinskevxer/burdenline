@@ -16,6 +16,8 @@ import {
   pageBounds,
   buildWhere,
   paging,
+  createRecord,
+  updateRecord,
 } from '../../src/db/repository.js';
 import { NotFoundError, ConflictError } from '../../src/lib/errors.js';
 
@@ -210,5 +212,121 @@ describe('buildWhere', () => {
     const built = buildWhere({ holeDiameterMm: 102 });
     expect(built.clause).toBe('WHERE hole_diameter_mm = @hole_diameter_mm');
     expect(built.parameters).toEqual({ hole_diameter_mm: 102 });
+  });
+});
+
+describe('createRecord', () => {
+  beforeEach(() => {
+    db.exec(`
+      CREATE TABLE crew (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        shift TEXT NOT NULL DEFAULT 'day',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    `);
+  });
+
+  const clock = { now: () => '2026-01-14T09:00:00.000Z' };
+
+  it('gives the record an id of the right prefix and both timestamps', () => {
+    const record = createRecord(
+      db,
+      { table: 'crew', prefix: 'per' },
+      { name: 'M Cronin' },
+      { clock },
+    );
+    expect(record.id.startsWith('per_')).toBe(true);
+    expect(record.createdAt).toBe('2026-01-14T09:00:00.000Z');
+    expect(record.updatedAt).toBe(record.createdAt);
+  });
+
+  it('takes an id the caller supplied', () => {
+    const record = createRecord(
+      db,
+      { table: 'crew', prefix: 'per' },
+      { id: 'per_fixed', name: 'M Cronin' },
+      { clock },
+    );
+    expect(record.id).toBe('per_fixed');
+  });
+
+  it('fills in the defaults and lets the caller override them', () => {
+    const record = createRecord(
+      db,
+      { table: 'crew', prefix: 'per', defaults: { shift: 'day' } },
+      { name: 'S Nolan', shift: 'night' },
+      { clock },
+    );
+    expect(record.shift).toBe('night');
+  });
+
+  it('drops a field the caller left undefined rather than writing null', () => {
+    const record = createRecord(
+      db,
+      { table: 'crew', prefix: 'per', defaults: { shift: 'day' } },
+      { name: 'S Nolan', shift: undefined },
+      { clock },
+    );
+    expect(record.shift).toBe('day');
+  });
+});
+
+describe('updateRecord', () => {
+  const clock = { now: () => '2026-01-15T09:00:00.000Z' };
+
+  beforeEach(() => {
+    db.exec(`
+      CREATE TABLE crew (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        shift TEXT NOT NULL DEFAULT 'day',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    `);
+    createRecord(
+      db,
+      { table: 'crew', prefix: 'per' },
+      { id: 'per_1', name: 'M Cronin' },
+      { clock: { now: () => '2026-01-14T09:00:00.000Z' } },
+    );
+  });
+
+  it('changes only the fields it is allowed to and moves the timestamp', () => {
+    const updated = updateRecord(
+      db,
+      { table: 'crew', kind: 'crew member', updatable: ['shift'] },
+      'per_1',
+      { shift: 'night', name: 'Somebody Else' },
+      { clock },
+    );
+    expect(updated.shift).toBe('night');
+    expect(updated.name).toBe('M Cronin');
+    expect(updated.updatedAt).toBe('2026-01-15T09:00:00.000Z');
+  });
+
+  it('leaves the timestamp alone when there is nothing to change', () => {
+    const updated = updateRecord(
+      db,
+      { table: 'crew', kind: 'crew member', updatable: ['shift'] },
+      'per_1',
+      { name: 'Somebody Else' },
+      { clock },
+    );
+    expect(updated.updatedAt).toBe('2026-01-14T09:00:00.000Z');
+  });
+
+  it('refuses a record that is not there and names the kind', () => {
+    expect(() =>
+      updateRecord(
+        db,
+        { table: 'crew', kind: 'crew member', updatable: ['shift'] },
+        'per_9',
+        {},
+        { clock },
+      ),
+    ).toThrow(/no crew member with id per_9/);
   });
 });

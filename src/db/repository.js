@@ -8,6 +8,7 @@
  */
 
 import { NotFoundError, ConflictError, AppError } from '../lib/errors.js';
+import { newId } from '../lib/ids.js';
 
 const MAX_PAGE_SIZE = 200;
 const DEFAULT_PAGE_SIZE = 50;
@@ -164,6 +165,51 @@ function translate(cause, table, row) {
     });
   }
   return cause;
+}
+
+/**
+ * Create and update, with the identifier and the timestamps applied in one
+ * place. Six repositories had written this out for themselves and three of them
+ * had drifted: two set `updatedAt` on create and one did not, so a freshly
+ * created record sorted differently from an edited one depending which table it
+ * was in.
+ */
+export function createRecord(db, { table, prefix, defaults = {} }, fields, { clock }) {
+  const now = clock.now();
+  const record = {
+    id: fields.id ?? newId(prefix),
+    ...defaults,
+    ...stripUndefined(fields),
+    createdAt: now,
+    updatedAt: now,
+  };
+  insertRow(db, table, record);
+  return record;
+}
+
+export function updateRecord(db, { table, kind, updatable }, id, changes, { clock }) {
+  getById(db, table, id, { kind: kind ?? table });
+  const allowed = {};
+  for (const key of updatable) {
+    if (changes[key] !== undefined) {
+      allowed[key] = changes[key];
+    }
+  }
+  if (Object.keys(allowed).length === 0) {
+    return getById(db, table, id, { kind: kind ?? table });
+  }
+  updateRow(db, table, id, { ...allowed, updatedAt: clock.now() });
+  return getById(db, table, id, { kind: kind ?? table });
+}
+
+function stripUndefined(fields) {
+  const out = {};
+  for (const [key, value] of Object.entries(fields)) {
+    if (value !== undefined) {
+      out[key] = value;
+    }
+  }
+  return out;
 }
 
 export const paging = { MAX_PAGE_SIZE, DEFAULT_PAGE_SIZE };
