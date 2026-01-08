@@ -22,6 +22,7 @@ import {
   createRecord,
 } from '../repository.js';
 import { canApply, signedQuantity, magazineState } from '../../domain/magazine/stock.js';
+import { prepared } from '../statements.js';
 
 export function createProduct(db, input, { clock }) {
   return createRecord(
@@ -167,18 +168,17 @@ export function listBatches(db, productId) {
 }
 
 export function ledgerFor(db, magazineId, options = {}) {
-  const rows = db
-    .prepare(
-      `SELECT l.*, b.batch_code, p.code AS product_code, p.kind AS product_kind
+  const rows = prepared(
+    db,
+    `SELECT l.*, b.batch_code, p.code AS product_code, p.kind AS product_kind
        FROM magazine_ledger l
        JOIN product_batch b ON b.id = l.batch_id
        JOIN product p ON p.id = b.product_id
-       WHERE l.magazine_id = ?
+       WHERE l.magazine_id = @magazineId
          AND (@from IS NULL OR l.occurred_at >= @from)
          AND (@to IS NULL OR l.occurred_at <= @to)
-       ORDER BY l.occurred_at, l.id`.replace('?', '@magazineId'),
-    )
-    .all({ magazineId, from: options.from ?? null, to: options.to ?? null });
+       ORDER BY l.occurred_at, l.id`,
+  ).all({ magazineId, from: options.from ?? null, to: options.to ?? null });
   return rowsToObjects(rows);
 }
 
