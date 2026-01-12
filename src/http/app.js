@@ -19,10 +19,12 @@ import { designRoutes } from './routes/design.js';
 import { postblastRoutes } from './routes/postblast.js';
 import { complaintRoutes } from './routes/complaints.js';
 import { reportRoutes } from './routes/reports.js';
+import { registerDescribe } from './plugins/describe.js';
 
 export async function buildApp(options) {
   const app = await buildServer(options);
   await registerAuth(app, { config: options.config });
+  registerDescribe(app);
   authRoutes(app);
   siteRoutes(app);
   patternRoutes(app);
