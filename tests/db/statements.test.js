@@ -5,6 +5,7 @@ import { migration as core } from '../../src/db/migrations/001_core.js';
 import { migration as explosivesMigration } from '../../src/db/migrations/002_explosives.js';
 import { migration as blasting } from '../../src/db/migrations/003_blasting.js';
 import { migration as operations } from '../../src/db/migrations/004_operations.js';
+import { migration as production } from '../../src/db/migrations/005_production.js';
 import { prepared, cacheSize, clearCache, queries } from '../../src/db/statements.js';
 import { createSite } from '../../src/db/repositories/sites.js';
 import {
@@ -22,7 +23,7 @@ const clock = fixedClock('2026-01-15T09:00:00Z');
 
 beforeEach(() => {
   db = openDatabase({ database: { file: ':memory:' } });
-  runMigrations(db, [core, explosivesMigration, blasting, operations]);
+  runMigrations(db, [core, explosivesMigration, blasting, operations, production]);
 });
 
 afterEach(() => {
@@ -50,7 +51,7 @@ describe('prepared', () => {
 
   it('keeps a cache per connection', () => {
     other = openDatabase({ database: { file: ':memory:' } });
-    runMigrations(other, [core, explosivesMigration, blasting, operations]);
+    runMigrations(other, [core, explosivesMigration, blasting, operations, production]);
     prepared(db, 'SELECT count(*) AS n FROM site');
     expect(cacheSize(other)).toBe(0);
     expect(prepared(other, 'SELECT count(*) AS n FROM site')).not.toBe(

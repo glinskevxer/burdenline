@@ -5,6 +5,7 @@ import { migration as core } from '../../src/db/migrations/001_core.js';
 import { migration as explosivesMigration } from '../../src/db/migrations/002_explosives.js';
 import { migration as blasting } from '../../src/db/migrations/003_blasting.js';
 import { migration as operations } from '../../src/db/migrations/004_operations.js';
+import { migration as production } from '../../src/db/migrations/005_production.js';
 import { runJob } from '../../src/jobs/framework.js';
 import { stockSweepJob, sleepingHolesJob } from '../../src/jobs/stock-sweep.js';
 import { createSite, createBench } from '../../src/db/repositories/sites.js';
@@ -48,7 +49,7 @@ function batchWithStock(quantity, overrides = {}) {
 
 beforeEach(() => {
   db = openDatabase({ database: { file: ':memory:' } });
-  runMigrations(db, [core, explosivesMigration, blasting, operations]);
+  runMigrations(db, [core, explosivesMigration, blasting, operations, production]);
   siteId = createSite(db, { code: 'MDW', name: 'Midway' }, { clock }).id;
   insertRow(db, 'person', {
     id: 'per_1',

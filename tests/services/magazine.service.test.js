@@ -5,6 +5,7 @@ import { migration as core } from '../../src/db/migrations/001_core.js';
 import { migration as explosivesMigration } from '../../src/db/migrations/002_explosives.js';
 import { migration as blasting } from '../../src/db/migrations/003_blasting.js';
 import { migration as operations } from '../../src/db/migrations/004_operations.js';
+import { migration as production } from '../../src/db/migrations/005_production.js';
 import { createSite, createBench } from '../../src/db/repositories/sites.js';
 import { createPattern, replaceHoles, listHoles } from '../../src/db/repositories/patterns.js';
 import { createBlast, transition, replaceDecks } from '../../src/db/repositories/blasts.js';
@@ -61,7 +62,7 @@ function approvedBlast() {
 
 beforeEach(() => {
   db = openDatabase({ database: { file: ':memory:' } });
-  runMigrations(db, [core, explosivesMigration, blasting, operations]);
+  runMigrations(db, [core, explosivesMigration, blasting, operations, production]);
   service = createMagazineService({ db, clock, logger: silentLogger() });
   siteId = createSite(db, { code: 'MDW', name: 'Midway' }, context).id;
   insertRow(db, 'person', {

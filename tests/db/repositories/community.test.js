@@ -5,6 +5,7 @@ import { migration as core } from '../../../src/db/migrations/001_core.js';
 import { migration as explosives } from '../../../src/db/migrations/002_explosives.js';
 import { migration as blasting } from '../../../src/db/migrations/003_blasting.js';
 import { migration as operations } from '../../../src/db/migrations/004_operations.js';
+import { migration as production } from '../../../src/db/migrations/005_production.js';
 import { createSite } from '../../../src/db/repositories/sites.js';
 import { createBlast } from '../../../src/db/repositories/blasts.js';
 import { createReceptor } from '../../../src/db/repositories/monitoring.js';
@@ -55,7 +56,7 @@ function complaint(overrides = {}) {
 
 beforeEach(() => {
   db = openDatabase({ database: { file: ':memory:' } });
-  runMigrations(db, [core, explosives, blasting, operations]);
+  runMigrations(db, [core, explosives, blasting, operations, production]);
   siteId = createSite(db, { code: 'MDW', name: 'Midway' }, { clock }).id;
   insertRow(db, 'person', {
     id: 'per_1',

@@ -43,7 +43,7 @@ async function boot(env = {}) {
 describe('bootstrap', () => {
   it('opens the database and applies every migration', async () => {
     const { db } = await boot();
-    expect(schemaVersion(db)).toBe('004');
+    expect(schemaVersion(db)).toBe('005');
   });
 
   it('creates the tables the application needs', async () => {
@@ -82,7 +82,7 @@ describe('bootstrap', () => {
     });
     opened.push(second);
     expect(schemaVersion(second.db)).toBe(null);
-    expect(schemaVersion(db)).toBe('004');
+    expect(schemaVersion(db)).toBe('005');
   });
 
   it('refuses to boot on a broken environment', async () => {
@@ -109,7 +109,7 @@ describe('bootstrap', () => {
     opened.push(first);
     const second = await bootstrap({ env });
     opened.push(second);
-    expect(schemaVersion(second.db)).toBe('004');
-    expect(second.db.prepare('SELECT count(*) AS n FROM schema_migration').get().n).toBe(4);
+    expect(schemaVersion(second.db)).toBe('005');
+    expect(second.db.prepare('SELECT count(*) AS n FROM schema_migration').get().n).toBe(5);
   });
 });

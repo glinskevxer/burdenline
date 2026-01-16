@@ -10,6 +10,7 @@ import { migration as core } from '../../src/db/migrations/001_core.js';
 import { migration as explosives } from '../../src/db/migrations/002_explosives.js';
 import { migration as blasting } from '../../src/db/migrations/003_blasting.js';
 import { migration as operations } from '../../src/db/migrations/004_operations.js';
+import { migration as production } from '../../src/db/migrations/005_production.js';
 import { seedDemoSite } from '../../src/fixtures/demo-site.js';
 import { fixedClock } from '../../src/lib/clock.js';
 
@@ -30,7 +31,7 @@ afterEach(() => {
 function seededDatabase(directory) {
   const file = join(directory, 'site.db');
   const db = openDatabase({ database: { file, walMode: true } });
-  runMigrations(db, [core, explosives, blasting, operations]);
+  runMigrations(db, [core, explosives, blasting, operations, production]);
   seedDemoSite(db, { clock: fixedClock('2025-11-10T09:00:00Z') });
   closeDatabase(db);
   return file;

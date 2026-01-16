@@ -5,6 +5,7 @@ import { migration as core } from '../../src/db/migrations/001_core.js';
 import { migration as explosives } from '../../src/db/migrations/002_explosives.js';
 import { migration as blasting } from '../../src/db/migrations/003_blasting.js';
 import { migration as operations } from '../../src/db/migrations/004_operations.js';
+import { migration as production } from '../../src/db/migrations/005_production.js';
 import { databaseCommands } from '../../src/cli/commands/database.js';
 import { run, EXIT } from '../../src/cli/framework.js';
 import { fixedClock } from '../../src/lib/clock.js';
@@ -35,7 +36,7 @@ describe('migrate', () => {
   it('applies everything on an empty database', async () => {
     const { io, out } = collector();
     expect(await run(commands, ['migrate'], io)).toBe(EXIT.ok);
-    expect(out[0]).toContain('applied 001, 002, 003, 004');
+    expect(out[0]).toContain('applied 001, 002, 003, 004, 005');
   });
 
   it('says there is nothing to do the second time', async () => {
@@ -55,10 +56,10 @@ describe('migrate', () => {
 
 describe('status', () => {
   it('reports the version and the row counts', async () => {
-    runMigrations(db, [core, explosives, blasting, operations]);
+    runMigrations(db, [core, explosives, blasting, operations, production]);
     const { io, out } = collector();
     expect(await run(commands, ['status'], io)).toBe(EXIT.ok);
-    expect(out.join('\n')).toContain('schema version: 004');
+    expect(out.join('\n')).toContain('schema version: 005');
     expect(out.join('\n')).toContain('integrity: ok');
     expect(out.join('\n')).toContain('site: 0');
   });
@@ -72,7 +73,7 @@ describe('status', () => {
 
 describe('seed', () => {
   beforeEach(() => {
-    runMigrations(db, [core, explosives, blasting, operations]);
+    runMigrations(db, [core, explosives, blasting, operations, production]);
   });
 
   it('loads a whole quarry', async () => {

@@ -5,6 +5,7 @@ import { migration as core } from '../../src/db/migrations/001_core.js';
 import { migration as explosives } from '../../src/db/migrations/002_explosives.js';
 import { migration as blasting } from '../../src/db/migrations/003_blasting.js';
 import { migration as operations } from '../../src/db/migrations/004_operations.js';
+import { migration as production } from '../../src/db/migrations/005_production.js';
 import { buildCommands, commandNames } from '../../src/cli/commands/index.js';
 import { run, EXIT } from '../../src/cli/framework.js';
 import { seedDemoSite } from '../../src/fixtures/demo-site.js';
@@ -30,7 +31,7 @@ function collector() {
 
 beforeEach(() => {
   db = openDatabase({ database: { file: ':memory:' } });
-  runMigrations(db, [core, explosives, blasting, operations]);
+  runMigrations(db, [core, explosives, blasting, operations, production]);
   seeded = seedDemoSite(db, { clock });
   commands = buildCommands({ db, clock, logger: silentLogger() });
 });

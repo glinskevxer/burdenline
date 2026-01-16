@@ -14,6 +14,7 @@ import { migration as core } from '../../src/db/migrations/001_core.js';
 import { migration as explosives } from '../../src/db/migrations/002_explosives.js';
 import { migration as blasting } from '../../src/db/migrations/003_blasting.js';
 import { migration as operations } from '../../src/db/migrations/004_operations.js';
+import { migration as production } from '../../src/db/migrations/005_production.js';
 import { insertRow } from '../../src/db/repository.js';
 import { loadConfig } from '../../src/config/env.js';
 import { fixedClock } from '../../src/lib/clock.js';
@@ -37,7 +38,7 @@ function person(id, name, roles, active = 1) {
 
 beforeEach(async () => {
   db = openDatabase({ database: { file: ':memory:' } });
-  runMigrations(db, [core, explosives, blasting, operations]);
+  runMigrations(db, [core, explosives, blasting, operations, production]);
   app = await buildServer({ config, db, clock, logger: silentLogger() });
   await registerAuth(app, { config });
   authRoutes(app);
