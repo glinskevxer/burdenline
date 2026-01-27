@@ -174,15 +174,23 @@ function translate(cause, table, row) {
  * created record sorted differently from an edited one depending which table it
  * was in.
  */
-export function createRecord(db, { table, prefix, defaults = {} }, fields, { clock }) {
+export function createRecord(
+  db,
+  { table, prefix, defaults = {}, timestamps = ['createdAt', 'updatedAt'] },
+  fields,
+  { clock },
+) {
   const now = clock.now();
   const record = {
     id: fields.id ?? newId(prefix),
     ...defaults,
     ...stripUndefined(fields),
-    createdAt: now,
-    updatedAt: now,
   };
+  // Append only tables have a created_at and no updated_at, because a row that
+  // is never edited has nothing to put in one.
+  for (const field of timestamps) {
+    record[field] = now;
+  }
   insertRow(db, table, record);
   return record;
 }

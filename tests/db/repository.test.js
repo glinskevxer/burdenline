@@ -262,6 +262,20 @@ describe('createRecord', () => {
     expect(record.shift).toBe('night');
   });
 
+  it('writes only the timestamps the table has', () => {
+    db.exec(
+      'CREATE TABLE note (id TEXT PRIMARY KEY, body TEXT NOT NULL, created_at TEXT NOT NULL)',
+    );
+    const record = createRecord(
+      db,
+      { table: 'note', prefix: 'evt', timestamps: ['createdAt'] },
+      { body: 'a line in the book' },
+      { clock },
+    );
+    expect(record.createdAt).toBe('2026-01-14T09:00:00.000Z');
+    expect(record.updatedAt).toBe(undefined);
+  });
+
   it('drops a field the caller left undefined rather than writing null', () => {
     const record = createRecord(
       db,
