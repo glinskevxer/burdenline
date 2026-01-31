@@ -19,6 +19,7 @@ import { designRoutes } from './routes/design.js';
 import { postblastRoutes } from './routes/postblast.js';
 import { complaintRoutes } from './routes/complaints.js';
 import { reportRoutes } from './routes/reports.js';
+import { productionRoutes } from './routes/production.js';
 import { registerDescribe } from './plugins/describe.js';
 
 export async function buildApp(options) {
@@ -35,6 +36,7 @@ export async function buildApp(options) {
   designRoutes(app);
   postblastRoutes(app);
   complaintRoutes(app);
+  productionRoutes(app);
   reportRoutes(app);
   return app;
 }
