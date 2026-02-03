@@ -1,11 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { openDatabase, closeDatabase } from '../../../src/db/connection.js';
-import { runMigrations } from '../../../src/db/migrate.js';
-import { migration as core } from '../../../src/db/migrations/001_core.js';
-import { migration as explosives } from '../../../src/db/migrations/002_explosives.js';
-import { migration as blasting } from '../../../src/db/migrations/003_blasting.js';
-import { migration as operations } from '../../../src/db/migrations/004_operations.js';
-import { migration as production } from '../../../src/db/migrations/005_production.js';
+import { openTestDatabase, closeTestDatabase } from '../../helpers/database.js';
 import { createSite } from '../../../src/db/repositories/sites.js';
 import {
   createProduct,
@@ -36,9 +30,8 @@ let batchId;
 const clock = fixedClock('2025-08-12T09:00:00Z');
 const context = { clock };
 
-beforeEach(() => {
-  db = openDatabase({ database: { file: ':memory:' } });
-  runMigrations(db, [core, explosives, blasting, operations, production]);
+beforeEach(async () => {
+  db = await openTestDatabase();
   siteId = createSite(db, { code: 'MDW', name: 'Midway' }, context).id;
   productId = createProduct(
     db,
@@ -57,7 +50,7 @@ beforeEach(() => {
   ).id;
 });
 
-afterEach(() => closeDatabase(db));
+afterEach(() => closeTestDatabase(db));
 
 describe('products', () => {
   it('creates and reads one back', () => {

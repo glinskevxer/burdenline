@@ -1,11 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { openDatabase, closeDatabase } from '../../src/db/connection.js';
-import { runMigrations } from '../../src/db/migrate.js';
-import { migration as core } from '../../src/db/migrations/001_core.js';
-import { migration as explosivesMigration } from '../../src/db/migrations/002_explosives.js';
-import { migration as blasting } from '../../src/db/migrations/003_blasting.js';
-import { migration as operations } from '../../src/db/migrations/004_operations.js';
-import { migration as production } from '../../src/db/migrations/005_production.js';
+import { openTestDatabase, closeTestDatabase } from '../helpers/database.js';
 import { seedDemoSite } from '../../src/fixtures/demo-site.js';
 import { createReportingService } from '../../src/services/reporting.service.js';
 import { createBlast, transition, recordDesignTotals } from '../../src/db/repositories/blasts.js';
@@ -73,9 +67,8 @@ function consume(quantity = 1000) {
   );
 }
 
-beforeEach(() => {
-  db = openDatabase({ database: { file: ':memory:' } });
-  runMigrations(db, [core, explosivesMigration, blasting, operations, production]);
+beforeEach(async () => {
+  db = await openTestDatabase();
   seeded = seedDemoSite(db, { clock });
   service = createReportingService({ db, clock });
   blastId = firedBlast();
@@ -94,7 +87,7 @@ beforeEach(() => {
   );
 });
 
-afterEach(() => closeDatabase(db));
+afterEach(() => closeTestDatabase(db));
 
 describe('blastReport', () => {
   it('gathers the shot from every table it touches', () => {

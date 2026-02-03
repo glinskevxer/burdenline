@@ -1,11 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { openDatabase, closeDatabase } from '../../src/db/connection.js';
-import { runMigrations } from '../../src/db/migrate.js';
-import { migration as core } from '../../src/db/migrations/001_core.js';
-import { migration as explosivesMigration } from '../../src/db/migrations/002_explosives.js';
-import { migration as blasting } from '../../src/db/migrations/003_blasting.js';
-import { migration as operations } from '../../src/db/migrations/004_operations.js';
-import { migration as production } from '../../src/db/migrations/005_production.js';
+import { openTestDatabase, closeTestDatabase } from '../helpers/database.js';
 import { prepared, cacheSize, clearCache, queries } from '../../src/db/statements.js';
 import { createSite } from '../../src/db/repositories/sites.js';
 import {
@@ -21,15 +15,14 @@ let db;
 let other;
 const clock = fixedClock('2026-01-15T09:00:00Z');
 
-beforeEach(() => {
-  db = openDatabase({ database: { file: ':memory:' } });
-  runMigrations(db, [core, explosivesMigration, blasting, operations, production]);
+beforeEach(async () => {
+  db = await openTestDatabase();
 });
 
 afterEach(() => {
-  closeDatabase(db);
+  closeTestDatabase(db);
   if (other) {
-    closeDatabase(other);
+    closeTestDatabase(other);
     other = undefined;
   }
 });
@@ -49,9 +42,8 @@ describe('prepared', () => {
     expect(cacheSize(db)).toBe(2);
   });
 
-  it('keeps a cache per connection', () => {
-    other = openDatabase({ database: { file: ':memory:' } });
-    runMigrations(other, [core, explosivesMigration, blasting, operations, production]);
+  it('keeps a cache per connection', async () => {
+    other = await openTestDatabase();
     prepared(db, 'SELECT count(*) AS n FROM site');
     expect(cacheSize(other)).toBe(0);
     expect(prepared(other, 'SELECT count(*) AS n FROM site')).not.toBe(
