@@ -24,7 +24,14 @@ describe('the test database helper', () => {
 
   it('loads the migrations the application ships rather than a list of its own', async () => {
     const list = await migrations();
-    expect(list.map((migration) => migration.id)).toEqual(['001', '002', '003', '004', '005']);
+    expect(list.map((migration) => migration.id)).toEqual([
+      '001',
+      '002',
+      '003',
+      '004',
+      '005',
+      '006',
+    ]);
   });
 
   it('reads the migration directory only once', async () => {

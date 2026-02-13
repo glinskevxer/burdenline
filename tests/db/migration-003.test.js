@@ -5,6 +5,7 @@ import { migration as core } from '../../src/db/migrations/001_core.js';
 import { migration as explosives } from '../../src/db/migrations/002_explosives.js';
 import { migration as blasting } from '../../src/db/migrations/003_blasting.js';
 import { migration as operations } from '../../src/db/migrations/004_operations.js';
+import { migration as siteRules } from '../../src/db/migrations/006_site_rules.js';
 import { migration as production } from '../../src/db/migrations/005_production.js';
 import { insertRow, findById } from '../../src/db/repository.js';
 import { ConflictError } from '../../src/lib/errors.js';
@@ -49,7 +50,7 @@ function seedBlast(siteId, overrides = {}) {
 
 beforeEach(() => {
   db = openDatabase({ database: { file: ':memory:' } });
-  runMigrations(db, [core, explosives, blasting, operations, production]);
+  runMigrations(db, [core, explosives, blasting, operations, production, siteRules]);
 });
 
 afterEach(() => closeDatabase(db));
@@ -82,7 +83,7 @@ describe('the blasting tables', () => {
         .prepare('SELECT id FROM schema_migration ORDER BY id')
         .all()
         .map((r) => r.id),
-    ).toEqual(['001', '002', '003', '004', '005']);
+    ).toEqual(['001', '002', '003', '004', '005', '006']);
   });
 });
 
