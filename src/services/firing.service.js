@@ -26,6 +26,7 @@ import { mayFire } from '../domain/people/competency.js';
 import { decide, assertMayFire } from '../domain/firing/gate.js';
 import * as blasts from '../db/repositories/blasts.js';
 import * as monitoring from '../db/repositories/monitoring.js';
+import { rulesFor } from '../db/repositories/site-rules.js';
 
 export function createFiringService({ db, clock, logger }) {
   const context = { clock };
@@ -139,7 +140,12 @@ export function createFiringService({ db, clock, logger }) {
         : null,
       clearance: clearanceState({ blastId, at: moment }),
       weather: observation
-        ? checkConditions({ observation: parseObservation(observation), receptors, wetHoles })
+        ? checkConditions({
+            observation: parseObservation(observation),
+            receptors,
+            wetHoles,
+            rules: rulesFor(db, blast.siteId, 'weather').values,
+          })
         : null,
       schedule: schedule ? checkFiringTime({ instant: moment, zone, schedule, embargoes }) : null,
     };

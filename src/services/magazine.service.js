@@ -18,6 +18,7 @@ import { reconcileShot, discrepancyReport } from '../domain/magazine/reconcile.j
 import { buildDay, verifyDay, renderDay } from '../domain/magazine/daybook.js';
 import * as explosives from '../db/repositories/explosives.js';
 import * as blasts from '../db/repositories/blasts.js';
+import { rulesFor } from '../db/repositories/site-rules.js';
 
 export function createMagazineService({ db, clock, logger }) {
   const context = { clock };
@@ -177,8 +178,12 @@ export function createMagazineService({ db, clock, logger }) {
   }
 
   function reconcile({ blastId, designed = [] }) {
+    const blast = blasts.getBlast(db, blastId);
     const lines = explosives.ledgerForBlast(db, blastId);
-    const reconciliation = reconcileShot({ blastId, designed, lines });
+    const reconciliation = reconcileShot(
+      { blastId, designed, lines },
+      { rules: rulesFor(db, blast.siteId, 'reconcile').values },
+    );
     return {
       ...reconciliation,
       trace: traceForBlast(lines, new Map(lines.map((line) => [line.batchId, line]))),

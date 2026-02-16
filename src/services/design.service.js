@@ -31,6 +31,7 @@ import { merge } from '../domain/violations.js';
 import * as patterns from '../db/repositories/patterns.js';
 import * as sites from '../db/repositories/sites.js';
 import * as monitoring from '../db/repositories/monitoring.js';
+import { rulesFor } from '../db/repositories/site-rules.js';
 
 export function createDesignService({ db, clock, logger }) {
   const context = { clock };
@@ -68,8 +69,19 @@ export function createDesignService({ db, clock, logger }) {
     };
   }
 
+  /** The rules in force at the site this pattern is on, unless the caller set them. */
+  function rulesForPattern(patternId, ruleSet, given) {
+    if (given) {
+      return given;
+    }
+    const pattern = patterns.getPattern(db, patternId);
+    const bench = sites.getBench(db, pattern.benchId);
+    return rulesFor(db, bench.siteId, ruleSet).values;
+  }
+
   /** Charge every drilled hole in a pattern to a target powder factor. */
-  function planCharges({ patternId, catalogue, powderFactorKgM3, stemmingM, rules }) {
+  function planCharges({ patternId, catalogue, powderFactorKgM3, stemmingM, rules: given }) {
+    const rules = rulesForPattern(patternId, 'charge', given);
     const pattern = patterns.getPattern(db, patternId);
     const holes = patterns.listHoles(db, patternId).map((hole) => ({
       ...hole,
@@ -98,7 +110,8 @@ export function createDesignService({ db, clock, logger }) {
   }
 
   /** Resolve the tie-in and work out what the timing does to the charge. */
-  function planTiming({ patternId, plan, tieIn, windowMs = 8, rules }) {
+  function planTiming({ patternId, plan, tieIn, windowMs = 8, rules: given }) {
+    const rules = rulesForPattern(patternId, 'timing', given);
     const holes = patterns.listHoles(db, patternId);
     const resolved = resolveFiringTimes(tieIn);
     const massByHole = new Map(plan.holes.map((item) => [item.holeNumber, item.loadedMassKg]));
@@ -215,5 +228,5 @@ export function createDesignService({ db, clock, logger }) {
     };
   }
 
-  return { layOut, planCharges, planTiming, assessVibration, design };
+  return { layOut, planCharges, planTiming, assessVibration, design, rulesForPattern };
 }
