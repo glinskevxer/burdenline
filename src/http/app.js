@@ -21,6 +21,7 @@ import { complaintRoutes } from './routes/complaints.js';
 import { reportRoutes } from './routes/reports.js';
 import { productionRoutes } from './routes/production.js';
 import { siteRuleRoutes } from './routes/site-rules.js';
+import { rigRoutes } from './routes/rigs.js';
 import { registerDescribe } from './plugins/describe.js';
 
 export async function buildApp(options) {
@@ -39,6 +40,7 @@ export async function buildApp(options) {
   complaintRoutes(app);
   productionRoutes(app);
   siteRuleRoutes(app);
+  rigRoutes(app);
   reportRoutes(app);
   return app;
 }
