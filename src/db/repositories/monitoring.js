@@ -14,6 +14,7 @@
 import { newId } from '../../lib/ids.js';
 import { ConflictError } from '../../lib/errors.js';
 import { inTransaction } from '../connection.js';
+import { selectWhere } from '../query.js';
 import {
   insertRow,
   updateRow,
@@ -151,26 +152,20 @@ export function importRecords(db, siteId, records, { clock, sourceFile = null } 
 }
 
 export function listRecords(db, siteId, options = {}) {
-  const rows = db
-    .prepare(
-      `SELECT * FROM monitor_record
-       WHERE site_id = @siteId
-         AND (@from IS NULL OR triggered_at >= @from)
-         AND (@to IS NULL OR triggered_at <= @to)
-         AND (@receptorId IS NULL OR receptor_id = @receptorId)
-         AND (@blastId IS NULL OR blast_id = @blastId)
-       ORDER BY triggered_at DESC
-       LIMIT @limit`,
-    )
-    .all({
+  return selectWhere(db, {
+    table: 'monitor_record',
+    // A null filter means "not filtered", not "where the column is null": the
+    // callers pass null freely and a record with no receptor is not what they
+    // are asking for.
+    where: {
       siteId,
-      from: options.from ?? null,
-      to: options.to ?? null,
-      receptorId: options.receptorId ?? null,
-      blastId: options.blastId ?? null,
-      limit: options.limit ?? 500,
-    });
-  return rowsToObjects(rows);
+      receptorId: options.receptorId ?? undefined,
+      blastId: options.blastId ?? undefined,
+    },
+    between: { column: 'triggeredAt', from: options.from, to: options.to },
+    orderBy: 'triggered_at DESC',
+    limit: options.limit ?? 500,
+  });
 }
 
 export function attachRecordToBlast(db, recordId, blastId) {

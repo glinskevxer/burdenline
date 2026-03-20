@@ -12,8 +12,9 @@
  */
 
 import { ConflictError, ValidationError } from '../../lib/errors.js';
-import { getById, listWhere, rowsToObjects, createRecord, updateRecord } from '../repository.js';
+import { getById, listWhere, createRecord, updateRecord } from '../repository.js';
 import { roundTo } from '../../lib/units.js';
+import { selectWhere } from '../query.js';
 
 export const RIG_STATES = ['available', 'drilling', 'maintenance', 'down', 'retired'];
 export const SHIFTS = ['day', 'back', 'night'];
@@ -137,16 +138,13 @@ export function recordShift(db, input, { clock }) {
 }
 
 export function listShifts(db, rigId, { from, to } = {}) {
-  const rows = db
-    .prepare(
-      `SELECT * FROM drill_shift
-       WHERE rig_id = @rigId
-         AND (@from IS NULL OR shift_date >= @from)
-         AND (@to IS NULL OR shift_date <= @to)
-       ORDER BY shift_date, shift`,
-    )
-    .all({ rigId, from: from ?? null, to: to ?? null });
-  return rowsToObjects(rows);
+  return selectWhere(db, {
+    table: 'drill_shift',
+    where: { rigId },
+    between: { column: 'shiftDate', from, to },
+    orderBy: 'shift_date, shift',
+    limit: 500,
+  });
 }
 
 /** Metres per drilling hour, and how much of the shift was spent drilling. */

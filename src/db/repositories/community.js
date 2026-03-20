@@ -10,14 +10,7 @@
 import { newId } from '../../lib/ids.js';
 import { ConflictError } from '../../lib/errors.js';
 import { inTransaction } from '../connection.js';
-import {
-  insertRow,
-  updateRow,
-  getById,
-  findById,
-  rowsToObjects,
-  listWhere,
-} from '../repository.js';
+import { insertRow, updateRow, getById, findById, listWhere } from '../repository.js';
 import {
   parseComplaint,
   advance,
@@ -31,6 +24,7 @@ import {
   summarise as summariseNotices,
 } from '../../domain/community/notifications.js';
 import { recordChange } from '../audit.js';
+import { selectWhere } from '../query.js';
 
 export function recordComplaint(db, input, { clock, actorId = null }) {
   getById(db, 'site', input.siteId, { kind: 'site' });
@@ -77,24 +71,13 @@ export function getComplaint(db, id) {
 }
 
 export function listComplaints(db, siteId, options = {}) {
-  const rows = db
-    .prepare(
-      `SELECT * FROM complaint
-       WHERE site_id = @siteId
-         AND (@state IS NULL OR state = @state)
-         AND (@from IS NULL OR received_at >= @from)
-         AND (@to IS NULL OR received_at <= @to)
-       ORDER BY received_at DESC
-       LIMIT @limit`,
-    )
-    .all({
-      siteId,
-      state: options.state ?? null,
-      from: options.from ?? null,
-      to: options.to ?? null,
-      limit: options.limit ?? 200,
-    });
-  return rowsToObjects(rows);
+  return selectWhere(db, {
+    table: 'complaint',
+    where: { siteId, state: options.state },
+    between: { column: 'receivedAt', from: options.from, to: options.to },
+    orderBy: 'received_at DESC',
+    limit: options.limit ?? 200,
+  });
 }
 
 export function advanceComplaint(db, id, action, context, { clock, actorId = null }) {
