@@ -8,12 +8,14 @@
 import { databaseCommands } from './database.js';
 import { reportingCommands } from './reporting.js';
 import { jobCommands } from './jobs.js';
+import { supplyCommands } from './supply.js';
 
 export function buildCommands(dependencies) {
   return {
     ...databaseCommands(dependencies),
     ...reportingCommands(dependencies),
     ...jobCommands(dependencies),
+    ...supplyCommands(dependencies),
   };
 }
 
