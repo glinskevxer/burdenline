@@ -55,7 +55,13 @@ afterEach(() => closeTestDatabase(db));
 
 describe('the job table', () => {
   it('carries the three sweeps', () => {
-    expect(jobNames()).toEqual(['certificate-expiry', 'sleeping-holes', 'stock-sweep']);
+    expect(jobNames()).toEqual([
+      'certificate-expiry',
+      'notice-sweep',
+      'sleeping-holes',
+      'stock-sweep',
+      'supply-review',
+    ]);
   });
 
   it('gives every job an interval', () => {
@@ -76,7 +82,7 @@ describe('the job table', () => {
 
   it('runs the lot', async () => {
     const outcome = await runEverything(context());
-    expect(outcome.ran).toBe(3);
+    expect(outcome.ran).toBe(5);
     expect(outcome.ok).toBe(true);
   });
 });
@@ -85,7 +91,7 @@ describe('the scheduler', () => {
   it('registers a timer per job', () => {
     const timers = fakeTimers();
     const scheduler = startScheduler(context(), { timers });
-    expect(timers.registered).toHaveLength(3);
+    expect(timers.registered).toHaveLength(5);
     scheduler.stop();
     expect(timers.registered.every((handle) => handle.cleared)).toBe(true);
   });
@@ -154,7 +160,7 @@ describe('the job commands', () => {
     const { io, out } = collector();
     const commands = buildCommands({ db, clock, logger: silentLogger() });
     await run(commands, ['run-job'], io);
-    expect(out.filter((line) => line.includes(': ok'))).toHaveLength(3);
+    expect(out.filter((line) => line.includes(': ok'))).toHaveLength(5);
   });
 
   it('writes json when asked', async () => {

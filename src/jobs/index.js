@@ -11,11 +11,14 @@
 import { runAll, findJob } from './framework.js';
 import { certificateExpiryJob } from './certificate-expiry.js';
 import { stockSweepJob, sleepingHolesJob } from './stock-sweep.js';
+import { supplyReviewJob, noticeSweepJob } from './supply-review.js';
 
 export const DEFAULT_SCHEDULE = Object.freeze({
   'certificate-expiry': 24 * 60 * 60 * 1000,
   'stock-sweep': 6 * 60 * 60 * 1000,
   'sleeping-holes': 60 * 60 * 1000,
+  'supply-review': 24 * 60 * 60 * 1000,
+  'notice-sweep': 4 * 60 * 60 * 1000,
 });
 
 export function buildJobs(options = {}) {
@@ -23,6 +26,8 @@ export function buildJobs(options = {}) {
     certificateExpiryJob(options.certificateExpiry),
     stockSweepJob(options.stockSweep),
     sleepingHolesJob(),
+    supplyReviewJob(),
+    noticeSweepJob(options.noticeSweep),
   ];
 }
 
