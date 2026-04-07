@@ -15,6 +15,9 @@ import * as blasts from '../../db/repositories/blasts.js';
 import { parseProduct } from '../../domain/charging/products.js';
 import { predict } from '../../domain/postblast/fragmentation.js';
 import { ValidationError } from '../../lib/errors.js';
+import { createComparisonService } from '../../services/comparison.service.js';
+import * as monitoring from '../../db/repositories/monitoring.js';
+import * as costing from '../../db/repositories/costing.js';
 
 const tieInSchema = {
   type: 'object',
@@ -53,10 +56,48 @@ const tieInSchema = {
   },
 };
 
+const designShape = {
+  type: 'object',
+  required: [
+    'faceBearingDeg',
+    'rowCount',
+    'holesPerRow',
+    'burdenM',
+    'spacingM',
+    'benchHeightM',
+    'diameterMm',
+    'origin',
+  ],
+  additionalProperties: false,
+  properties: {
+    origin: {
+      type: 'object',
+      required: ['easting', 'northing', 'level'],
+      additionalProperties: false,
+      properties: {
+        easting: { type: 'number' },
+        northing: { type: 'number' },
+        level: { type: 'number' },
+      },
+    },
+    faceBearingDeg: { type: 'number', minimum: 0, exclusiveMaximum: 360 },
+    layout: { type: 'string', enum: ['square', 'staggered', 'single_row'] },
+    rowCount: { type: 'integer', minimum: 1, maximum: 20 },
+    holesPerRow: { type: 'integer', minimum: 1, maximum: 200 },
+    burdenM: { type: 'number', exclusiveMinimum: 0, maximum: 20 },
+    spacingM: { type: 'number', exclusiveMinimum: 0, maximum: 20 },
+    benchHeightM: { type: 'number', exclusiveMinimum: 0, maximum: 60 },
+    subdrillM: { type: 'number', minimum: 0, maximum: 6 },
+    inclinationDeg: { type: 'number', minimum: 0, maximum: 45 },
+    diameterMm: { type: 'number', minimum: 25, maximum: 400 },
+  },
+};
+
 export function designRoutes(app) {
   const { db, clock, logger } = app.deps;
   const context = { clock };
   const service = createDesignService({ db, clock, logger });
+  const comparison = createComparisonService({ clock });
 
   /** The catalogue the designer may load from, read out of the database. */
   function catalogueFor() {
@@ -228,6 +269,45 @@ export function designRoutes(app) {
         },
         violations: result.violations,
       };
+    },
+  );
+
+  app.post(
+    '/sites/:siteId/what-if',
+    {
+      preHandler: app.requireGrant('design'),
+      schema: {
+        body: {
+          type: 'object',
+          required: ['base', 'alternative', 'powderFactorKgM3'],
+          additionalProperties: false,
+          properties: {
+            base: designShape,
+            alternative: designShape,
+            powderFactorKgM3: { type: 'number', exclusiveMinimum: 0, maximum: 3 },
+            connectorDelayMs: { type: 'number', minimum: 0, maximum: 1000 },
+            receptorDistanceM: { type: 'number', exclusiveMinimum: 0 },
+            rockFactorA: { type: 'number', exclusiveMinimum: 0, maximum: 20 },
+          },
+        },
+      },
+    },
+    async (request) => {
+      const siteId = request.params.siteId;
+      const law = monitoring.currentSiteLaw(db, siteId);
+      const receptors = monitoring.listReceptors(db, siteId);
+      return comparison.compare({
+        base: request.body.base,
+        alternative: request.body.alternative,
+        catalogue: catalogueFor(),
+        powderFactorKgM3: request.body.powderFactorKgM3,
+        connectorDelayMs: request.body.connectorDelayMs ?? 42,
+        law: law ?? undefined,
+        receptorDistanceM: request.body.receptorDistanceM ?? (receptors.length > 0 ? 400 : null),
+        rockFactorA: request.body.rockFactorA ?? 7,
+        prices: costing.priceBook(db),
+        rates: costing.rateBook(db, siteId),
+      });
     },
   );
 
