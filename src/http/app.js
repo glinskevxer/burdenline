@@ -24,11 +24,13 @@ import { siteRuleRoutes } from './routes/site-rules.js';
 import { rigRoutes } from './routes/rigs.js';
 import { orderRoutes } from './routes/orders.js';
 import { registerDescribe } from './plugins/describe.js';
+import { registerIdempotency } from './plugins/idempotency.js';
 
 export async function buildApp(options) {
   const app = await buildServer(options);
   await registerAuth(app, { config: options.config });
   registerDescribe(app);
+  registerIdempotency(app);
   authRoutes(app);
   siteRoutes(app);
   patternRoutes(app);
