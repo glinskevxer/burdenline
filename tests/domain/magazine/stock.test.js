@@ -231,3 +231,34 @@ describe('canApply', () => {
     expect(result.violations.map((v) => v.rule)).toContain('magazine.not_active');
   });
 });
+
+describe('consumption against the balance', () => {
+  it('needs no stock in the magazine, because the issue already took it', () => {
+    const result = canApply(
+      { movement: 'consumption', quantity: 380, batchId: 'batch_1' },
+      magazine,
+      [],
+    );
+    expect(result.valid).toBe(true);
+  });
+
+  it('does not take the stock down a second time', () => {
+    const held = balances([
+      line(),
+      line({ movement: 'issue', quantity: -400, massKg: -400 }),
+      line({ movement: 'consumption', quantity: -380, massKg: -380 }),
+      line({ movement: 'return', quantity: 20, massKg: 20 }),
+    ]);
+    expect(held[0].quantity).toBe(620);
+  });
+
+  it('still counts the consumption line for the reconciliation', () => {
+    expect(signedQuantity('consumption', 380)).toBe(-380);
+  });
+
+  it('reads a magazine that has only consumption against it as untouched', () => {
+    expect(
+      netExplosiveQuantityKg([line({ movement: 'consumption', quantity: -100, massKg: -100 })]),
+    ).toBe(0);
+  });
+});

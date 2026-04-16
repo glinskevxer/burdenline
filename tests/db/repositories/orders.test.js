@@ -299,7 +299,7 @@ describe('onOrder and reviewSupply', () => {
         {
           magazineId,
           batchId: batch.id,
-          movement: 'consumption',
+          movement: 'issue',
           quantity: 900,
           massKg: 900,
           occurredAt: `${day}T13:00:00.000Z`,

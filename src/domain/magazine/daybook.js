@@ -52,7 +52,11 @@ export function buildDay({ siteId, date, lines, openingBalances = {}, zone = 'UT
   const entries = forDay.map((line, index) => {
     const product = line.productCode;
     const previous = balances[product] ?? 0;
-    const balance = roundTo(previous + line.quantity, 4);
+    // A consumption line is written into the book because the book has to show
+    // what happened to the explosive, but it does not move the balance: the
+    // issue that put it on the bench already did.
+    const balance =
+      line.movement === 'consumption' ? previous : roundTo(previous + line.quantity, 4);
     balances[product] = balance;
     return {
       siteId,

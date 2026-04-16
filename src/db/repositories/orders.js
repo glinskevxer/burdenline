@@ -258,13 +258,19 @@ function heldByProduct(db, magazineIds) {
        FROM magazine_ledger l
        JOIN product_batch b ON b.id = l.batch_id
        JOIN product p ON p.id = b.product_id
-       WHERE l.magazine_id IN (${placeholders})
+       WHERE l.magazine_id IN (${placeholders}) AND l.movement <> 'consumption'
        GROUP BY p.code`,
     )
     .all(...magazineIds);
   return Object.fromEntries(rows.map((row) => [row.product_code, roundTo(row.held, 3)]));
 }
 
+/**
+ * Use is measured from what left the store, not from what went down the holes.
+ * The two differ by whatever came back, and the store has to replace what left
+ * it either way. It also means a site that has not filled its consumption
+ * records in still gets a usable reorder point.
+ */
 function usageByProduct(db, siteId, from) {
   const rows = db
     .prepare(
@@ -274,7 +280,7 @@ function usageByProduct(db, siteId, from) {
        JOIN product_batch b ON b.id = l.batch_id
        JOIN product p ON p.id = b.product_id
        JOIN magazine m ON m.id = l.magazine_id
-       WHERE m.site_id = @siteId AND l.movement = 'consumption'
+       WHERE m.site_id = @siteId AND l.movement = 'issue'
          AND (@from IS NULL OR l.occurred_at >= @from)
        GROUP BY p.code, on_date`,
     )

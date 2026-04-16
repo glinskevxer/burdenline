@@ -35,6 +35,8 @@ const DIRECTION = {
   return: 1,
   transfer_in: 1,
   issue: -1,
+  // Consumption is written as a negative line so the reconciliation can read the
+  // magnitude, but it does not move the magazine balance: see balances below.
   consumption: -1,
   disposal: -1,
   transfer_out: -1,
@@ -71,10 +73,20 @@ export function signedQuantity(movement, magnitude) {
   return roundTo(direction * magnitude, 4);
 }
 
-/** Balance per batch in one magazine, and the mass behind it. */
+/**
+ * Balance per batch in one magazine, and the mass behind it.
+ *
+ * Consumption lines are read past. Explosive that has been issued has already
+ * left the magazine, and recording what went down the holes is a record of what
+ * happened to it on the bench, not a second withdrawal. Counting both took the
+ * store to zero twice over, which is how the end to end test found it.
+ */
 export function balances(lines) {
   const byBatch = new Map();
   for (const line of lines) {
+    if (line.movement === 'consumption') {
+      continue;
+    }
     const key = line.batchId;
     const current = byBatch.get(key) ?? {
       batchId: key,
@@ -173,7 +185,10 @@ export function canApply(movement, magazine, lines, options = {}) {
   const state = magazineState(magazine, lines, options);
   const batch = state.batches.find((item) => item.batchId === movement.batchId);
 
-  if (quantity < 0) {
+  // Consumption records what happened to explosive that has already been issued,
+  // so there is nothing left in the magazine for it to draw on and no stock
+  // check to make.
+  if (quantity < 0 && movement.movement !== 'consumption') {
     const held = batch?.quantity ?? 0;
     found.atLeast(
       held,

@@ -99,6 +99,32 @@ describe('buildDay', () => {
   });
 });
 
+describe('consumption in the book', () => {
+  it('is written into the book but does not move the balance', () => {
+    const day = buildDay({
+      siteId: 'site_1',
+      date: '2025-06-20',
+      lines: [
+        line(),
+        line({
+          id: 'led_c',
+          movement: 'issue',
+          quantity: -400,
+          occurredAt: '2025-06-20T10:00:00.000Z',
+        }),
+        line({
+          id: 'led_d',
+          movement: 'consumption',
+          quantity: -380,
+          occurredAt: '2025-06-20T17:00:00.000Z',
+        }),
+      ],
+    });
+    expect(day.entries.map((entry) => entry.balanceAfter)).toEqual([1000, 600, 600]);
+    expect(day.entries).toHaveLength(3);
+  });
+});
+
 describe('verifyDay', () => {
   const day = buildDay({ siteId: 'site_1', date: '2025-06-20', lines });
 

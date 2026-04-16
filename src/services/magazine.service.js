@@ -138,7 +138,6 @@ export function createMagazineService({ db, clock, logger }) {
             personId,
             occurredAt: asOf,
             reference: blast.reference,
-            force: true,
           },
           context,
         ),
