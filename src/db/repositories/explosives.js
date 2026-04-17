@@ -23,6 +23,7 @@ import {
 } from '../repository.js';
 import { canApply, signedQuantity, magazineState } from '../../domain/magazine/stock.js';
 import { prepared } from '../statements.js';
+import { roundTo } from '../../lib/units.js';
 
 export function createProduct(db, input, { clock }) {
   return createRecord(
@@ -206,7 +207,6 @@ export function recordMovement(db, input, { clock }) {
   getBatch(db, input.batchId);
   const now = clock.now();
   return inTransaction(db, () => {
-    const existing = ledgerFor(db, input.magazineId);
     const check = canApply(
       {
         movement: input.movement,
@@ -215,8 +215,8 @@ export function recordMovement(db, input, { clock }) {
         batchId: input.batchId,
       },
       magazine,
-      existing,
-      { batchIsDetonator: input.batchIsDetonator },
+      [],
+      { batchIsDetonator: input.batchIsDetonator, balances: balanceRows(db, input.magazineId) },
     );
     if (!check.valid && !input.force) {
       throw new ConflictError('that movement cannot be made', { violations: check.violations });
@@ -277,7 +277,31 @@ export function correctMovement(db, { ledgerId, quantity, reason, personId }, { 
   return line;
 }
 
+/**
+ * Per batch balances, summed in the database. Consumption is left out for the
+ * same reason it is left out of the running balance: the issue already moved it.
+ */
+export function balanceRows(db, magazineId) {
+  const rows = prepared(
+    db,
+    `SELECT l.batch_id AS batchId, l.magazine_id AS magazineId, l.unit AS unit,
+            sum(l.quantity) AS quantity, sum(l.mass_kg) AS massKg,
+            count(*) AS lineCount, max(l.occurred_at) AS lastMovementAt
+       FROM magazine_ledger l
+       WHERE l.magazine_id = ? AND l.movement <> 'consumption'
+       GROUP BY l.batch_id, l.unit`,
+  ).all(magazineId);
+  return rows.map((row) => ({
+    ...row,
+    quantity: roundTo(row.quantity, 4),
+    massKg: roundTo(row.massKg, 4),
+  }));
+}
+
 export function stockFor(db, magazineId, options = {}) {
   const magazine = getMagazine(db, magazineId);
-  return magazineState(magazine, ledgerFor(db, magazineId, options), options);
+  if (options.from || options.to) {
+    return magazineState(magazine, ledgerFor(db, magazineId, options), options);
+  }
+  return magazineState(magazine, [], { ...options, balances: balanceRows(db, magazineId) });
 }

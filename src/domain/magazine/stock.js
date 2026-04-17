@@ -129,7 +129,11 @@ export function detonatorCount(lines, batchIsDetonator) {
 
 /** Everything a stock check reports about one magazine. */
 export function magazineState(magazine, lines, options = {}) {
-  const perBatch = balances(lines);
+  // A caller that can compute the balances in the database passes them in. On a
+  // magazine with a few thousand ledger lines behind it, summing them in
+  // javascript on every movement is the difference between a stock check that
+  // takes a millisecond and one that takes most of a second.
+  const perBatch = options.balances ?? balances(lines);
   const netExplosiveKg = roundTo(
     perBatch.reduce((sum, batch) => sum + batch.massKg, 0),
     4,
@@ -183,6 +187,7 @@ export function canApply(movement, magazine, lines, options = {}) {
   const quantity = signedQuantity(movement.movement, movement.quantity);
   const massKg = movement.massKg ?? quantity;
   const state = magazineState(magazine, lines, options);
+
   const batch = state.batches.find((item) => item.batchId === movement.batchId);
 
   // Consumption records what happened to explosive that has already been issued,
