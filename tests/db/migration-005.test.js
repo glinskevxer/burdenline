@@ -7,6 +7,7 @@ import { migration as blasting } from '../../src/db/migrations/003_blasting.js';
 import { migration as operations } from '../../src/db/migrations/004_operations.js';
 import { migration as production } from '../../src/db/migrations/005_production.js';
 import { migration as siteRules } from '../../src/db/migrations/006_site_rules.js';
+import { migration as indexes } from '../../src/db/migrations/007_indexes.js';
 import { insertRow, findById } from '../../src/db/repository.js';
 import { ConflictError } from '../../src/lib/errors.js';
 
@@ -37,14 +38,14 @@ function seedBlast(siteId) {
 
 beforeEach(() => {
   db = openDatabase({ database: { file: ':memory:' } });
-  runMigrations(db, [core, explosives, blasting, operations, production, siteRules]);
+  runMigrations(db, [core, explosives, blasting, operations, production, siteRules, indexes]);
 });
 
 afterEach(() => closeDatabase(db));
 
 describe('the production tables', () => {
   it('takes the schema to 005', () => {
-    expect(schemaVersion(db)).toBe('006');
+    expect(schemaVersion(db)).toBe('007');
   });
 
   it('creates them all', () => {

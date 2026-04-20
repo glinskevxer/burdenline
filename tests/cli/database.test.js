@@ -7,6 +7,7 @@ import { migration as blasting } from '../../src/db/migrations/003_blasting.js';
 import { migration as operations } from '../../src/db/migrations/004_operations.js';
 import { migration as production } from '../../src/db/migrations/005_production.js';
 import { migration as siteRules } from '../../src/db/migrations/006_site_rules.js';
+import { migration as indexes } from '../../src/db/migrations/007_indexes.js';
 import { databaseCommands } from '../../src/cli/commands/database.js';
 import { run, EXIT } from '../../src/cli/framework.js';
 import { fixedClock } from '../../src/lib/clock.js';
@@ -37,7 +38,7 @@ describe('migrate', () => {
   it('applies everything on an empty database', async () => {
     const { io, out } = collector();
     expect(await run(commands, ['migrate'], io)).toBe(EXIT.ok);
-    expect(out[0]).toContain('applied 001, 002, 003, 004, 005, 006');
+    expect(out[0]).toContain('applied 001, 002, 003, 004, 005, 006, 007');
   });
 
   it('says there is nothing to do the second time', async () => {
@@ -57,10 +58,10 @@ describe('migrate', () => {
 
 describe('status', () => {
   it('reports the version and the row counts', async () => {
-    runMigrations(db, [core, explosives, blasting, operations, production, siteRules]);
+    runMigrations(db, [core, explosives, blasting, operations, production, siteRules, indexes]);
     const { io, out } = collector();
     expect(await run(commands, ['status'], io)).toBe(EXIT.ok);
-    expect(out.join('\n')).toContain('schema version: 006');
+    expect(out.join('\n')).toContain('schema version: 007');
     expect(out.join('\n')).toContain('integrity: ok');
     expect(out.join('\n')).toContain('site: 0');
   });
@@ -74,7 +75,7 @@ describe('status', () => {
 
 describe('seed', () => {
   beforeEach(() => {
-    runMigrations(db, [core, explosives, blasting, operations, production, siteRules]);
+    runMigrations(db, [core, explosives, blasting, operations, production, siteRules, indexes]);
   });
 
   it('loads a whole quarry', async () => {

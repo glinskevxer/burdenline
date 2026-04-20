@@ -31,6 +31,7 @@ describe('the test database helper', () => {
       '004',
       '005',
       '006',
+      '007',
     ]);
   });
 
