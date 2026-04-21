@@ -126,3 +126,27 @@ describe('shot references', () => {
     expect(() => parseShotReference('MDW-25-1')).toThrow(AppError);
   });
 });
+
+describe('the corners of the identifier format', () => {
+  it('rolls the per millisecond counter over rather than growing the id', () => {
+    const now = () => 1_700_000_000_000;
+    const ids = new Set();
+    for (let i = 0; i < 1100; i += 1) {
+      ids.add(newId('hole', { now, random: () => 0.25 }));
+    }
+    const lengths = new Set([...ids].map((id) => id.length));
+    expect(lengths.size).toBe(1);
+  });
+
+  it('keeps the alphabet inside its bounds whatever the random source gives', () => {
+    const id = newId('hole', { random: () => 0.999999 });
+    expect(isId(id)).toBe(true);
+    const lowest = newId('hole', { random: () => 0 });
+    expect(isId(lowest)).toBe(true);
+  });
+
+  it('encodes a time of zero without overflowing the field', () => {
+    const id = newId('site', { now: () => 0, random: () => 0.5 });
+    expect(id.split('_')[1]).toHaveLength(22);
+  });
+});

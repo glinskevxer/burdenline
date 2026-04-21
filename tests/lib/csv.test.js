@@ -179,3 +179,23 @@ describe('readNumber', () => {
     expect(() => readNumber('twelve', { field: 'depth' })).toThrow(ValidationError);
   });
 });
+
+describe('the shapes a spreadsheet exports', () => {
+  it('writes a date as an instant rather than as a local string', () => {
+    expect(toCsv([{ at: new Date('2026-04-25T09:00:00Z') }])).toBe(
+      'at\n2026-04-25T09:00:00.000Z\n',
+    );
+  });
+
+  it('rounds a long float to something readable', () => {
+    expect(toCsv([{ value: 1 / 3 }], { decimals: 4 })).toBe('value\n0.3333\n');
+  });
+
+  it('writes a whole number without a decimal point', () => {
+    expect(toCsv([{ value: 42 }])).toBe('value\n42\n');
+  });
+
+  it('writes a boolean as it stands', () => {
+    expect(toCsv([{ ok: true }])).toBe('ok\ntrue\n');
+  });
+});

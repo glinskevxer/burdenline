@@ -198,3 +198,56 @@ describe('highestReading', () => {
     expect(highestReading([])).toBe(null);
   });
 });
+
+describe('the corners of the compliance judgement', () => {
+  const cottage = parseReceptor({
+    id: 'rec_9',
+    name: 'Gate lodge',
+    structureClass: 'dwelling',
+    easting: 1,
+    northing: 1,
+  });
+
+  function reading(overrides = {}) {
+    return parseRecord({
+      monitorSerial: 'BE-2',
+      receptorId: 'rec_9',
+      triggeredAt: '2026-04-25T13:00:00.000Z',
+      longitudinal: { peakMmPerSecond: 1, frequencyHz: 20 },
+      transverse: { peakMmPerSecond: 2, frequencyHz: 20 },
+      vertical: { peakMmPerSecond: 1.5, frequencyHz: 20 },
+      ...overrides,
+    });
+  }
+
+  it('reads a record with no airblast channel as ground only', () => {
+    const result = evaluateRecord(reading(), cottage);
+    expect(result.channels).toEqual([]);
+    expect(result.airSeverity).toBe('none');
+  });
+
+  it('bands a reading sitting right on the watch threshold', () => {
+    expect(severityFor(DEFAULT_THRESHOLDS.watch)).toBe('watch');
+    expect(severityFor(DEFAULT_THRESHOLDS.approaching)).toBe('approaching');
+  });
+
+  it('carries the worst of the two channels as the severity', () => {
+    const loud = reading({ airblastDb: 140 });
+    const result = evaluateRecord(loud, { ...cottage, airblastLimitDb: 133 });
+    expect(result.severity).toBe('exceedance');
+    expect(result.groundSeverity).toBe('none');
+  });
+
+  it('counts a repeat only once per receptor', () => {
+    const loud = () =>
+      evaluateRecord(reading({ transverse: { peakMmPerSecond: 40, frequencyHz: 20 } }), cottage);
+    const repeats = repeatExceedances([loud(), loud(), loud()]);
+    expect(repeats).toHaveLength(1);
+    expect(repeats[0].count).toBe(2);
+  });
+
+  it('reads an empty evaluation set as compliant with nothing to show', () => {
+    const summary = complianceSummary([]);
+    expect(summary).toMatchObject({ recordCount: 0, compliant: true, worstRatio: null });
+  });
+});
