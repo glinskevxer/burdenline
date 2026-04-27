@@ -1,3 +1,5 @@
 node_modules
 coverage
 package-lock.json
+# generated from the routes the server registers
+api.json

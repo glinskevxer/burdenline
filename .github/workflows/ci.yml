@@ -74,6 +74,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: node scripts/export-check.js
+      - run: node scripts/export-api.js --check
 
   image:
     name: build the image

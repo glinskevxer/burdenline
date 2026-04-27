@@ -1,0 +1,2370 @@
+{
+  "service": "burdenline",
+  "routeCount": 115,
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/audit",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/audit/:entityKind/:entityId",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/auth/token",
+      "body": {
+        "required": [
+          "personId"
+        ],
+        "fields": [
+          {
+            "name": "personId",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "siteId",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "allowsUnknown": true
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/auth/whoami",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "PATCH",
+      "path": "/benches/:benchId",
+      "body": {
+        "required": [],
+        "fields": [
+          {
+            "name": "crestLevelM",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "rockDensityKgM3",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "rockType",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "required": false,
+            "values": [
+              "active",
+              "worked_out",
+              "suspended"
+            ]
+          },
+          {
+            "name": "toeLevelM",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "ucsMpa",
+            "type": "number",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/benches/:benchId/patterns",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/benches/:benchId/patterns",
+      "body": {
+        "required": [
+          "burdenM",
+          "diameterMm",
+          "faceBearingDeg",
+          "holesPerRow",
+          "origin",
+          "reference",
+          "rowCount",
+          "spacingM"
+        ],
+        "fields": [
+          {
+            "name": "benchHeightM",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "burdenM",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "designedBy",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "diameterMm",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "faceBearingDeg",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "holesPerRow",
+            "type": "integer",
+            "required": true
+          },
+          {
+            "name": "inclinationDeg",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "layout",
+            "type": "string",
+            "required": false,
+            "values": [
+              "square",
+              "staggered",
+              "single_row"
+            ]
+          },
+          {
+            "name": "origin",
+            "type": "object",
+            "required": true
+          },
+          {
+            "name": "reference",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "rowCount",
+            "type": "integer",
+            "required": true
+          },
+          {
+            "name": "spacingM",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "subdrillM",
+            "type": "number",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/benches/:benchId/retire",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/blasts/:blastId",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/abandon",
+      "body": {
+        "required": [
+          "reason"
+        ],
+        "fields": [
+          {
+            "name": "reason",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/approve",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/blasts/:blastId/clearance",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/clearance",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/clearance/:itemKey",
+      "body": {
+        "required": [],
+        "fields": [
+          {
+            "name": "note",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/close",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/complete-design",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/dig-records",
+      "body": {
+        "required": [
+          "hours",
+          "tonnes"
+        ],
+        "fields": [
+          {
+            "name": "buckets",
+            "type": "integer",
+            "required": false
+          },
+          {
+            "name": "delayMinutes",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "delayReason",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "hours",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "loader",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "recordedOn",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "tonnes",
+            "type": "number",
+            "required": true
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/blasts/:blastId/digging",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/fire",
+      "body": {
+        "required": [],
+        "fields": [
+          {
+            "name": "embargoes",
+            "type": "array",
+            "required": false
+          },
+          {
+            "name": "observation",
+            "type": "object",
+            "required": false
+          },
+          {
+            "name": "overrides",
+            "type": "array",
+            "required": false
+          },
+          {
+            "name": "schedule",
+            "type": "object",
+            "required": false
+          },
+          {
+            "name": "wetHoles",
+            "type": "boolean",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/gate",
+      "body": {
+        "required": [],
+        "fields": [
+          {
+            "name": "embargoes",
+            "type": "array",
+            "required": false
+          },
+          {
+            "name": "observation",
+            "type": "object",
+            "required": false
+          },
+          {
+            "name": "overrides",
+            "type": "array",
+            "required": false
+          },
+          {
+            "name": "schedule",
+            "type": "object",
+            "required": false
+          },
+          {
+            "name": "wetHoles",
+            "type": "boolean",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/inspect",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/blasts/:blastId/inspection",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/inspection",
+      "body": {
+        "required": [
+          "muckpileShape",
+          "throwM",
+          "toeGrade"
+        ],
+        "fields": [
+          {
+            "name": "backbreakM",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "faceStable",
+            "type": "boolean",
+            "required": false
+          },
+          {
+            "name": "flyrockObserved",
+            "type": "boolean",
+            "required": false
+          },
+          {
+            "name": "fumeGrade",
+            "type": "integer",
+            "required": false
+          },
+          {
+            "name": "inspectedAt",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "muckpileHeightM",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "muckpileShape",
+            "type": "string",
+            "required": true,
+            "values": [
+              "tight",
+              "moderate",
+              "loose",
+              "cast"
+            ]
+          },
+          {
+            "name": "note",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "oversizeCount",
+            "type": "integer",
+            "required": false
+          },
+          {
+            "name": "throwM",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "toeGrade",
+            "type": "string",
+            "required": true,
+            "values": [
+              "none",
+              "slight",
+              "moderate",
+              "severe"
+            ]
+          },
+          {
+            "name": "toeLengthM",
+            "type": "number",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/issues",
+      "body": {
+        "required": [
+          "items",
+          "magazineId"
+        ],
+        "fields": [
+          {
+            "name": "items",
+            "type": "array",
+            "required": true
+          },
+          {
+            "name": "magazineId",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/load",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/made-safe",
+      "body": {
+        "required": [],
+        "fields": [
+          {
+            "name": "note",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/misfire",
+      "body": {
+        "required": [
+          "reason"
+        ],
+        "fields": [
+          {
+            "name": "reason",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/misfires",
+      "body": {
+        "required": [
+          "description",
+          "holeNumbers",
+          "kind"
+        ],
+        "fields": [
+          {
+            "name": "description",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "discoveredAt",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "explosiveEstimateKg",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "holeNumbers",
+            "type": "array",
+            "required": true
+          },
+          {
+            "name": "kind",
+            "type": "string",
+            "required": true,
+            "values": [
+              "unfired_hole",
+              "partial_detonation",
+              "cut_off",
+              "unaccounted_explosive"
+            ]
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/blasts/:blastId/monitoring",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/blasts/:blastId/notifications",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/notifications",
+      "body": {
+        "required": [],
+        "fields": [
+          {
+            "name": "plannedFor",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "radiusM",
+            "type": "number",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/blasts/:blastId/reconciliation",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/reject",
+      "body": {
+        "required": [
+          "reason"
+        ],
+        "fields": [
+          {
+            "name": "reason",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/blasts/:blastId/report",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/revise",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/secondary-breaking",
+      "body": {
+        "required": [
+          "method"
+        ],
+        "fields": [
+          {
+            "name": "boulderCount",
+            "type": "integer",
+            "required": false
+          },
+          {
+            "name": "carriedOutOn",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "explosiveUsedKg",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "hours",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "method",
+            "type": "string",
+            "required": true,
+            "values": [
+              "hydraulic_hammer",
+              "pop_shooting",
+              "plaster_shooting",
+              "drop_ball"
+            ]
+          },
+          {
+            "name": "note",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/submit",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/blasts/:blastId/surveys",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/surveys",
+      "body": {
+        "required": [
+          "method",
+          "volumeM3"
+        ],
+        "fields": [
+          {
+            "name": "densityKgM3",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "method",
+            "type": "string",
+            "required": true,
+            "values": [
+              "laser_scan",
+              "drone_photogrammetry",
+              "total_station",
+              "truck_count",
+              "weighbridge"
+            ]
+          },
+          {
+            "name": "note",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "surveyedAt",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "tonnes",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "volumeM3",
+            "type": "number",
+            "required": true
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "PUT",
+      "path": "/blasts/:blastId/tie-in",
+      "body": {
+        "required": [
+          "connectors"
+        ],
+        "fields": [
+          {
+            "name": "connectors",
+            "type": "array",
+            "required": true
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/blasts/:blastId/tie-in-complete",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "PUT",
+      "path": "/blasts/:blastId/totals",
+      "body": {
+        "required": [],
+        "fields": [
+          {
+            "name": "holeCount",
+            "type": "integer",
+            "required": false
+          },
+          {
+            "name": "instantaneousChargeKg",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "powderFactorKgM3",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "totalChargeKg",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "volumeM3",
+            "type": "number",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/blasts/:blastId/yield",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/complaints/:complaintId",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/complaints/:complaintId/blast",
+      "body": {
+        "required": [
+          "blastId"
+        ],
+        "fields": [
+          {
+            "name": "blastId",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/complaints/:complaintId/close",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/complaints/:complaintId/investigate",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/complaints/:complaintId/reopen",
+      "body": {
+        "required": [],
+        "fields": [
+          {
+            "name": "outcome",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/complaints/:complaintId/respond",
+      "body": {
+        "required": [],
+        "fields": [
+          {
+            "name": "outcome",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/complaints/:complaintId/withdraw",
+      "body": {
+        "required": [],
+        "fields": [
+          {
+            "name": "outcome",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/magazines/:magazineId/corrections",
+      "body": {
+        "required": [
+          "ledgerId",
+          "quantity",
+          "reason"
+        ],
+        "fields": [
+          {
+            "name": "ledgerId",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "quantity",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/magazines/:magazineId/daybook.csv",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/magazines/:magazineId/ledger",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/magazines/:magazineId/movements",
+      "body": {
+        "required": [
+          "batchId",
+          "movement",
+          "quantity"
+        ],
+        "fields": [
+          {
+            "name": "batchId",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "blastId",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "massKg",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "movement",
+            "type": "string",
+            "required": true,
+            "values": [
+              "receipt",
+              "issue",
+              "return",
+              "consumption",
+              "disposal",
+              "transfer_in",
+              "transfer_out",
+              "stocktake"
+            ]
+          },
+          {
+            "name": "occurredAt",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "quantity",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "reference",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "unit",
+            "type": "string",
+            "required": false,
+            "values": [
+              "kg",
+              "each",
+              "metre"
+            ]
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/magazines/:magazineId/stock",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/misfires/:misfireId/made-safe",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/monitor-records/:recordId/blast",
+      "body": {
+        "required": [
+          "blastId"
+        ],
+        "fields": [
+          {
+            "name": "blastId",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/notifications/:notificationId/outcome",
+      "body": {
+        "required": [
+          "sent"
+        ],
+        "fields": [
+          {
+            "name": "reason",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "sent",
+            "type": "boolean",
+            "required": true
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/orders/:orderId",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/orders/:orderId/cancel",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/orders/:orderId/deliveries",
+      "body": {
+        "required": [
+          "items",
+          "magazineId"
+        ],
+        "fields": [
+          {
+            "name": "deliveryNote",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "items",
+            "type": "array",
+            "required": true
+          },
+          {
+            "name": "magazineId",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/patterns/:patternId",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/patterns/:patternId/charge-plan",
+      "body": {
+        "required": [
+          "powderFactorKgM3"
+        ],
+        "fields": [
+          {
+            "name": "powderFactorKgM3",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "stemmingM",
+            "type": "number",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/patterns/:patternId/drill-log",
+      "body": {
+        "required": [
+          "csv"
+        ],
+        "fields": [
+          {
+            "name": "csv",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "skipLines",
+            "type": "integer",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/patterns/:patternId/holes",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/patterns/:patternId/plan",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/patterns/:patternId/plan.csv",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/patterns/:patternId/rigs",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/patterns/:patternId/timing",
+      "body": {
+        "required": [
+          "powderFactorKgM3",
+          "tieIn"
+        ],
+        "fields": [
+          {
+            "name": "powderFactorKgM3",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "stemmingM",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "tieIn",
+            "type": "object",
+            "required": true
+          },
+          {
+            "name": "windowMs",
+            "type": "number",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/products",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/products",
+      "body": {
+        "required": [
+          "code",
+          "kind",
+          "name"
+        ],
+        "fields": [
+          {
+            "name": "code",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "kind",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "allowsUnknown": true
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/products/:productId/batches",
+      "body": {
+        "required": [
+          "batchCode"
+        ],
+        "fields": [
+          {
+            "name": "batchCode",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "deliveryNote",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "expiresOn",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "manufacturedOn",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "supplier",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "PATCH",
+      "path": "/receptors/:receptorId",
+      "body": {
+        "required": [],
+        "fields": [
+          {
+            "name": "airblastLimitDb",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "limitMmPerSecond",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "monitored",
+            "type": "boolean",
+            "required": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "note",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "notifiable",
+            "type": "boolean",
+            "required": false
+          },
+          {
+            "name": "occupied",
+            "type": "boolean",
+            "required": false
+          },
+          {
+            "name": "structureClass",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "typicalFrequencyHz",
+            "type": "number",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "PATCH",
+      "path": "/rigs/:rigId",
+      "body": {
+        "required": [],
+        "fields": [
+          {
+            "name": "holeDiameterMaxMm",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "holeDiameterMinMm",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "make",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "model",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "required": false,
+            "values": [
+              "available",
+              "drilling",
+              "maintenance",
+              "down",
+              "retired"
+            ]
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/rigs/:rigId/retire",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/rigs/:rigId/shifts",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/rigs/:rigId/shifts",
+      "body": {
+        "required": [
+          "hours",
+          "shift"
+        ],
+        "fields": [
+          {
+            "name": "downtimeMinutes",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "downtimeReason",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "holesDrilled",
+            "type": "integer",
+            "required": false
+          },
+          {
+            "name": "hours",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "metresDrilled",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "patternId",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "shift",
+            "type": "string",
+            "required": true,
+            "values": [
+              "day",
+              "back",
+              "night"
+            ]
+          },
+          {
+            "name": "shiftDate",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/rule-sets",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/sites",
+      "body": {
+        "required": [
+          "code",
+          "name"
+        ],
+        "fields": [
+          {
+            "name": "code",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "gridEpsg",
+            "type": "integer",
+            "required": false
+          },
+          {
+            "name": "licenceNumber",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "timeZone",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "PATCH",
+      "path": "/sites/:siteId",
+      "body": {
+        "required": [],
+        "fields": [
+          {
+            "name": "gridEpsg",
+            "type": "integer",
+            "required": false
+          },
+          {
+            "name": "licenceNumber",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "timeZone",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/benches",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/sites/:siteId/benches",
+      "body": {
+        "required": [
+          "crestLevelM",
+          "name",
+          "rockDensityKgM3",
+          "rockType",
+          "toeLevelM"
+        ],
+        "fields": [
+          {
+            "name": "crestLevelM",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "rockDensityKgM3",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "rockType",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "toeLevelM",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "ucsMpa",
+            "type": "number",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/blasts",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/sites/:siteId/blasts",
+      "body": {
+        "required": [
+          "reference"
+        ],
+        "fields": [
+          {
+            "name": "note",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "patternId",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "plannedFor",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "reference",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/complaints",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/sites/:siteId/complaints",
+      "body": {
+        "required": [
+          "about",
+          "channel",
+          "description"
+        ],
+        "fields": [
+          {
+            "name": "about",
+            "type": "string",
+            "required": true,
+            "values": [
+              "vibration",
+              "airblast",
+              "dust",
+              "noise",
+              "flyrock",
+              "traffic",
+              "other"
+            ]
+          },
+          {
+            "name": "blastId",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "channel",
+            "type": "string",
+            "required": true,
+            "values": [
+              "telephone",
+              "email",
+              "letter",
+              "in_person",
+              "regulator",
+              "other"
+            ]
+          },
+          {
+            "name": "complainant",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "contact",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "occurredAt",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "receivedAt",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "receptorId",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/compliance",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/inspections",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/magazines",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/sites/:siteId/magazines",
+      "body": {
+        "required": [
+          "name",
+          "netExplosiveLimitKg"
+        ],
+        "fields": [
+          {
+            "name": "detonatorLimit",
+            "type": "integer",
+            "required": false
+          },
+          {
+            "name": "eastingM",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "kind",
+            "type": "string",
+            "required": false,
+            "values": [
+              "store",
+              "detonator_store",
+              "day_box",
+              "mobile_unit"
+            ]
+          },
+          {
+            "name": "licenceNumber",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "netExplosiveLimitKg",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "northingM",
+            "type": "number",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/monitor-records",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/sites/:siteId/monitor-records",
+      "body": {
+        "required": [
+          "csv"
+        ],
+        "fields": [
+          {
+            "name": "csv",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "distanceM",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "format",
+            "type": "string",
+            "required": false,
+            "values": [
+              "instantel",
+              "vibratech"
+            ]
+          },
+          {
+            "name": "receptorId",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "sourceFile",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/sites/:siteId/monitor-records/match",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/monitor-records/unmatched",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/orders",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/sites/:siteId/orders",
+      "body": {
+        "required": [
+          "lines",
+          "reference",
+          "supplier"
+        ],
+        "fields": [
+          {
+            "name": "expectedOn",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "lines",
+            "type": "array",
+            "required": true
+          },
+          {
+            "name": "note",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "reference",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "supplier",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/sites/:siteId/patterns/:patternId/design",
+      "body": {
+        "required": [
+          "powderFactorKgM3",
+          "tieIn"
+        ],
+        "fields": [
+          {
+            "name": "blastId",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "frequencyHz",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "powderFactorKgM3",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "stemmingM",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "tieIn",
+            "type": "object",
+            "required": true
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/receptors",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/sites/:siteId/receptors",
+      "body": {
+        "required": [
+          "easting",
+          "name",
+          "northing",
+          "structureClass"
+        ],
+        "fields": [
+          {
+            "name": "airblastLimitDb",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "easting",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "level",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "limitMmPerSecond",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "monitored",
+            "type": "boolean",
+            "required": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "northing",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "note",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "notifiable",
+            "type": "boolean",
+            "required": false
+          },
+          {
+            "name": "occupied",
+            "type": "boolean",
+            "required": false
+          },
+          {
+            "name": "structureClass",
+            "type": "string",
+            "required": true,
+            "values": [
+              "dwelling",
+              "older_dwelling",
+              "listed",
+              "heritage",
+              "commercial",
+              "industrial",
+              "buried_service",
+              "water_feature"
+            ]
+          },
+          {
+            "name": "typicalFrequencyHz",
+            "type": "number",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/regulator-pack",
+      "body": null,
+      "query": {
+        "required": [
+          "from",
+          "to"
+        ],
+        "fields": [
+          {
+            "name": "from",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "to",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "allowsUnknown": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/report",
+      "body": null,
+      "query": {
+        "required": [
+          "from",
+          "to"
+        ],
+        "fields": [
+          {
+            "name": "from",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "to",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "allowsUnknown": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/rigs",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/sites/:siteId/rigs",
+      "body": {
+        "required": [
+          "fleetNumber",
+          "holeDiameterMaxMm",
+          "holeDiameterMinMm"
+        ],
+        "fields": [
+          {
+            "name": "fleetNumber",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "holeDiameterMaxMm",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "holeDiameterMinMm",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "make",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "model",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "status",
+            "type": "string",
+            "required": false,
+            "values": [
+              "available",
+              "drilling",
+              "maintenance",
+              "down",
+              "retired"
+            ]
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/rules",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/rules/:ruleSet",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "PUT",
+      "path": "/sites/:siteId/rules/:ruleSet",
+      "body": {
+        "required": [
+          "values"
+        ],
+        "fields": [
+          {
+            "name": "note",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "values",
+            "type": "object",
+            "required": true
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "DELETE",
+      "path": "/sites/:siteId/rules/:ruleSet",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/scorecard",
+      "body": null,
+      "query": {
+        "required": [
+          "from",
+          "to"
+        ],
+        "fields": [
+          {
+            "name": "from",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "to",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "allowsUnknown": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/site-law",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "POST",
+      "path": "/sites/:siteId/site-law",
+      "body": {
+        "required": [],
+        "fields": [
+          {
+            "name": "confidence",
+            "type": "number",
+            "required": false,
+            "values": [
+              0.5,
+              0.8,
+              0.9,
+              0.95,
+              0.99
+            ]
+          },
+          {
+            "name": "from",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "minimumRecords",
+            "type": "integer",
+            "required": false
+          },
+          {
+            "name": "receptorId",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "to",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/supply-review",
+      "body": null,
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/surveys",
+      "body": null,
+      "query": {
+        "required": [
+          "from",
+          "to"
+        ],
+        "fields": [
+          {
+            "name": "from",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "to",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "allowsUnknown": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/sites/:siteId/what-if",
+      "body": {
+        "required": [
+          "alternative",
+          "base",
+          "powderFactorKgM3"
+        ],
+        "fields": [
+          {
+            "name": "alternative",
+            "type": "object",
+            "required": true
+          },
+          {
+            "name": "base",
+            "type": "object",
+            "required": true
+          },
+          {
+            "name": "connectorDelayMs",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "powderFactorKgM3",
+            "type": "number",
+            "required": true
+          },
+          {
+            "name": "receptorDistanceM",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "rockFactorA",
+            "type": "number",
+            "required": false
+          }
+        ],
+        "allowsUnknown": false
+      },
+      "query": null
+    }
+  ]
+}
