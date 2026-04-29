@@ -11,19 +11,6 @@ const at = '2025-12-24T09:00:00.000Z';
 const from = '2025-12-01T00:00:00.000Z';
 const to = '2025-12-31T23:59:59.000Z';
 
-async function get(url, role) {
-  return harness.app.inject({ method: 'GET', url, headers: harness.as(role) });
-}
-
-async function post(url, role, payload) {
-  return harness.app.inject({
-    method: 'POST',
-    url,
-    headers: harness.as(role),
-    ...(payload !== undefined ? { payload } : {}),
-  });
-}
-
 beforeEach(async () => {
   harness = await standUp({ at });
   const seeded = seedDemoSite(harness.db, { clock: harness.clock });
@@ -62,36 +49,41 @@ afterEach(async () => {
 
 describe('the shot report', () => {
   it('gathers the shot', async () => {
-    const response = await get(`/blasts/${blastId}/report`, 'viewer');
+    const response = await harness.get(`/blasts/${blastId}/report`, 'viewer');
     expect(response.statusCode).toBe(200);
     expect(response.json().blast.reference).toBe('MDW-2025-030');
     expect(response.json().metresDrilled).toBeGreaterThan(300);
   });
 
   it('takes the hours a caller hands it', async () => {
-    const plain = (await get(`/blasts/${blastId}/report`, 'viewer')).json();
-    const withLabour = (await get(`/blasts/${blastId}/report?labourHours=8`, 'viewer')).json();
+    const plain = (await harness.get(`/blasts/${blastId}/report`, 'viewer')).json();
+    const withLabour = (
+      await harness.get(`/blasts/${blastId}/report?labourHours=8`, 'viewer')
+    ).json();
     expect(withLabour.cost.parts.labour).toBeGreaterThanOrEqual(plain.cost.parts.labour);
   });
 
   it('answers 404 for a shot that is not there', async () => {
-    expect((await get('/blasts/blast_missing/report', 'viewer')).statusCode).toBe(404);
+    expect((await harness.get('/blasts/blast_missing/report', 'viewer')).statusCode).toBe(404);
   });
 });
 
 describe('the period report', () => {
   it('rolls the month up', async () => {
-    const response = await get(`/sites/${siteId}/report?from=${from}&to=${to}`, 'viewer');
+    const response = await harness.get(`/sites/${siteId}/report?from=${from}&to=${to}`, 'viewer');
     expect(response.json().blastCount).toBe(1);
     expect(response.json().volumeM3).toBe(3780);
   });
 
   it('refuses a period with no dates on it', async () => {
-    expect((await get(`/sites/${siteId}/report`, 'viewer')).statusCode).toBe(422);
+    expect((await harness.get(`/sites/${siteId}/report`, 'viewer')).statusCode).toBe(422);
   });
 
   it('scores the period', async () => {
-    const response = await get(`/sites/${siteId}/scorecard?from=${from}&to=${to}`, 'viewer');
+    const response = await harness.get(
+      `/sites/${siteId}/scorecard?from=${from}&to=${to}`,
+      'viewer',
+    );
     expect(response.json().clean).toBe(true);
     expect(response.json().tonnes).toBeGreaterThan(0);
   });
@@ -99,7 +91,10 @@ describe('the period report', () => {
 
 describe('the regulator pack', () => {
   it('builds one with every section', async () => {
-    const response = await get(`/sites/${siteId}/regulator-pack?from=${from}&to=${to}`, 'viewer');
+    const response = await harness.get(
+      `/sites/${siteId}/regulator-pack?from=${from}&to=${to}`,
+      'viewer',
+    );
     const pack = response.json().pack;
     expect(pack.header.licenceNumber).toBe('EL-4471');
     expect(pack.blasting.count).toBe(1);
@@ -108,12 +103,15 @@ describe('the regulator pack', () => {
   });
 
   it('names who prepared it', async () => {
-    const response = await get(`/sites/${siteId}/regulator-pack?from=${from}&to=${to}`, 'manager');
+    const response = await harness.get(
+      `/sites/${siteId}/regulator-pack?from=${from}&to=${to}`,
+      'manager',
+    );
     expect(response.json().pack.header.preparedBy).toBe('manager');
   });
 
   it('comes back as files when asked', async () => {
-    const response = await get(
+    const response = await harness.get(
       `/sites/${siteId}/regulator-pack?from=${from}&to=${to}&format=files`,
       'viewer',
     );
@@ -121,35 +119,38 @@ describe('the regulator pack', () => {
   });
 
   it('carries a complaint through into the pack', async () => {
-    await post(`/sites/${siteId}/complaints`, 'viewer', {
+    await harness.post(`/sites/${siteId}/complaints`, 'viewer', {
       channel: 'telephone',
       about: 'vibration',
       description: 'the house shook just after two on the twentieth',
       receivedAt: '2025-12-21T09:00:00.000Z',
     });
-    const response = await get(`/sites/${siteId}/regulator-pack?from=${from}&to=${to}`, 'viewer');
+    const response = await harness.get(
+      `/sites/${siteId}/regulator-pack?from=${from}&to=${to}`,
+      'viewer',
+    );
     expect(response.json().pack.complaints.count).toBe(1);
   });
 });
 
 describe('the audit trail', () => {
   it('reads the history of one record', async () => {
-    const response = await get(`/audit/blast/${blastId}`, 'admin');
+    const response = await harness.get(`/audit/blast/${blastId}`, 'admin');
     expect(response.statusCode).toBe(200);
     expect(Array.isArray(response.json().history)).toBe(true);
   });
 
   it('keeps a manager out of it', async () => {
-    expect((await get(`/audit/blast/${blastId}`, 'manager')).statusCode).toBe(403);
+    expect((await harness.get(`/audit/blast/${blastId}`, 'manager')).statusCode).toBe(403);
   });
 
   it('lists what one person did', async () => {
-    await post(`/sites/${siteId}/complaints`, 'viewer', {
+    await harness.post(`/sites/${siteId}/complaints`, 'viewer', {
       channel: 'telephone',
       about: 'dust',
       description: 'dust on the washing again this morning',
     });
-    const response = await get('/audit?actorId=per_viewer', 'admin');
+    const response = await harness.get('/audit?actorId=per_viewer', 'admin');
     expect(response.json().entries.length).toBeGreaterThan(0);
   });
 });

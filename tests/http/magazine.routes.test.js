@@ -14,10 +14,6 @@ async function post(url, role, payload) {
   return harness.app.inject({ method: 'POST', url, headers: harness.as(role), payload });
 }
 
-async function get(url, role) {
-  return harness.app.inject({ method: 'GET', url, headers: harness.as(role) });
-}
-
 beforeEach(async () => {
   harness = await standUp({ at });
   siteId = (await post('/sites', 'admin', { code: 'MDW', name: 'Midway' })).json().site.id;
@@ -60,7 +56,7 @@ async function receive(quantity = 1000) {
 
 describe('magazines', () => {
   it('creates one and lists it with its stock', async () => {
-    const response = await get(`/sites/${siteId}/magazines`, 'viewer');
+    const response = await harness.get(`/sites/${siteId}/magazines`, 'viewer');
     expect(response.json().magazines).toHaveLength(1);
     expect(response.json().magazines[0].stock.netExplosiveKg).toBe(0);
   });
@@ -86,7 +82,7 @@ describe('movements', () => {
   it('takes a receipt and moves the balance', async () => {
     expect((await receive()).statusCode).toBe(201);
     expect(
-      (await get(`/magazines/${magazineId}/stock`, 'viewer')).json().stock.netExplosiveKg,
+      (await harness.get(`/magazines/${magazineId}/stock`, 'viewer')).json().stock.netExplosiveKg,
     ).toBe(1000);
   });
 
@@ -129,7 +125,7 @@ describe('movements', () => {
 
   it('has no route to delete a line', async () => {
     await receive();
-    const line = (await get(`/magazines/${magazineId}/ledger`, 'viewer')).json().lines[0];
+    const line = (await harness.get(`/magazines/${magazineId}/ledger`, 'viewer')).json().lines[0];
     const response = await harness.app.inject({
       method: 'DELETE',
       url: `/magazines/${magazineId}/movements/${line.id}`,
@@ -140,21 +136,21 @@ describe('movements', () => {
 
   it('corrects a line instead, leaving the original standing', async () => {
     await receive();
-    const line = (await get(`/magazines/${magazineId}/ledger`, 'viewer')).json().lines[0];
+    const line = (await harness.get(`/magazines/${magazineId}/ledger`, 'viewer')).json().lines[0];
     const response = await post(`/magazines/${magazineId}/corrections`, 'store', {
       ledgerId: line.id,
       quantity: -20,
       reason: 'weighbridge ticket read wrong',
     });
     expect(response.statusCode).toBe(201);
-    const ledger = (await get(`/magazines/${magazineId}/ledger`, 'viewer')).json().lines;
+    const ledger = (await harness.get(`/magazines/${magazineId}/ledger`, 'viewer')).json().lines;
     expect(ledger).toHaveLength(2);
     expect(ledger[1].correctsId).toBe(line.id);
   });
 
   it('refuses a correction with no reason', async () => {
     await receive();
-    const line = (await get(`/magazines/${magazineId}/ledger`, 'viewer')).json().lines[0];
+    const line = (await harness.get(`/magazines/${magazineId}/ledger`, 'viewer')).json().lines[0];
     const response = await post(`/magazines/${magazineId}/corrections`, 'store', {
       ledgerId: line.id,
       quantity: -20,
@@ -203,7 +199,7 @@ describe('issuing to a shot', () => {
       magazineId,
       items: [{ productCode: 'ANFO-80', quantity: 400 }],
     });
-    const response = await get(`/blasts/${blastId}/reconciliation`, 'viewer');
+    const response = await harness.get(`/blasts/${blastId}/reconciliation`, 'viewer');
     expect(response.json().balanced).toBe(false);
     expect(response.json().products[0].issued).toBe(400);
   });
@@ -212,7 +208,10 @@ describe('issuing to a shot', () => {
 describe('the day-book', () => {
   it('comes back as a csv file for the day asked for', async () => {
     await receive();
-    const response = await get(`/magazines/${magazineId}/daybook.csv?date=2025-10-02`, 'viewer');
+    const response = await harness.get(
+      `/magazines/${magazineId}/daybook.csv?date=2025-10-02`,
+      'viewer',
+    );
     expect(response.headers['content-disposition']).toContain('daybook-2025-10-02.csv');
     const { records } = parseCsvRecords(response.payload);
     expect(records).toHaveLength(1);
@@ -220,7 +219,10 @@ describe('the day-book', () => {
   });
 
   it('comes back empty for a quiet day', async () => {
-    const response = await get(`/magazines/${magazineId}/daybook.csv?date=2025-10-03`, 'viewer');
+    const response = await harness.get(
+      `/magazines/${magazineId}/daybook.csv?date=2025-10-03`,
+      'viewer',
+    );
     expect(parseCsvRecords(response.payload).records).toHaveLength(0);
   });
 });

@@ -30,18 +30,9 @@ const ORDER = [
   'warning_signal',
 ];
 
-async function post(url, role, payload) {
-  return harness.app.inject({
-    method: 'POST',
-    url,
-    headers: harness.as(role),
-    ...(payload !== undefined ? { payload } : {}),
-  });
-}
-
 beforeEach(async () => {
   harness = await standUp({ at });
-  const site = await post('/sites', 'admin', {
+  const site = await harness.post('/sites', 'admin', {
     code: 'MDW',
     name: 'Midway',
     timeZone: 'Europe/Dublin',
@@ -57,13 +48,15 @@ beforeEach(async () => {
     createdAt: at,
     updatedAt: at,
   });
-  const blast = await post(`/sites/${siteId}/blasts`, 'designer', { reference: 'MDW-2025-014' });
+  const blast = await harness.post(`/sites/${siteId}/blasts`, 'designer', {
+    reference: 'MDW-2025-014',
+  });
   blastId = blast.json().blast.id;
-  await post(`/blasts/${blastId}/complete-design`, 'designer');
-  await post(`/blasts/${blastId}/submit`, 'designer');
-  await post(`/blasts/${blastId}/approve`, 'manager');
-  await post(`/blasts/${blastId}/load`, 'shotfirer');
-  await post(`/blasts/${blastId}/tie-in-complete`, 'shotfirer');
+  await harness.post(`/blasts/${blastId}/complete-design`, 'designer');
+  await harness.post(`/blasts/${blastId}/submit`, 'designer');
+  await harness.post(`/blasts/${blastId}/approve`, 'manager');
+  await harness.post(`/blasts/${blastId}/load`, 'shotfirer');
+  await harness.post(`/blasts/${blastId}/tie-in-complete`, 'shotfirer');
 });
 
 afterEach(async () => {
@@ -71,29 +64,29 @@ afterEach(async () => {
 });
 
 async function walkClearance() {
-  await post(`/blasts/${blastId}/clearance`, 'shotfirer');
+  await harness.post(`/blasts/${blastId}/clearance`, 'shotfirer');
   for (const itemKey of ORDER) {
-    await post(`/blasts/${blastId}/clearance/${itemKey}`, 'shotfirer', {});
+    await harness.post(`/blasts/${blastId}/clearance/${itemKey}`, 'shotfirer', {});
   }
 }
 
 describe('the clearance', () => {
   it('starts one and answers 201', async () => {
-    const response = await post(`/blasts/${blastId}/clearance`, 'shotfirer');
+    const response = await harness.post(`/blasts/${blastId}/clearance`, 'shotfirer');
     expect(response.statusCode).toBe(201);
     expect(response.json().clearance.items).toHaveLength(8);
   });
 
   it('refuses to start one on a shot that is not loaded', async () => {
     const other = (
-      await post(`/sites/${siteId}/blasts`, 'designer', { reference: 'MDW-2025-015' })
+      await harness.post(`/sites/${siteId}/blasts`, 'designer', { reference: 'MDW-2025-015' })
     ).json().blast.id;
-    expect((await post(`/blasts/${other}/clearance`, 'shotfirer')).statusCode).toBe(409);
+    expect((await harness.post(`/blasts/${other}/clearance`, 'shotfirer')).statusCode).toBe(409);
   });
 
   it('ticks items off and reports how far through it is', async () => {
-    await post(`/blasts/${blastId}/clearance`, 'shotfirer');
-    await post(`/blasts/${blastId}/clearance/plant_withdrawn`, 'shotfirer', {});
+    await harness.post(`/blasts/${blastId}/clearance`, 'shotfirer');
+    await harness.post(`/blasts/${blastId}/clearance/plant_withdrawn`, 'shotfirer', {});
     const response = await harness.app.inject({
       method: 'GET',
       url: `/blasts/${blastId}/clearance`,
@@ -104,15 +97,19 @@ describe('the clearance', () => {
   });
 
   it('refuses an item out of order', async () => {
-    await post(`/blasts/${blastId}/clearance`, 'shotfirer');
-    const response = await post(`/blasts/${blastId}/clearance/warning_signal`, 'shotfirer', {});
+    await harness.post(`/blasts/${blastId}/clearance`, 'shotfirer');
+    const response = await harness.post(
+      `/blasts/${blastId}/clearance/warning_signal`,
+      'shotfirer',
+      {},
+    );
     expect(response.statusCode).toBe(422);
   });
 
   it('keeps a viewer from ticking items off', async () => {
-    await post(`/blasts/${blastId}/clearance`, 'shotfirer');
+    await harness.post(`/blasts/${blastId}/clearance`, 'shotfirer');
     expect(
-      (await post(`/blasts/${blastId}/clearance/plant_withdrawn`, 'viewer', {})).statusCode,
+      (await harness.post(`/blasts/${blastId}/clearance/plant_withdrawn`, 'viewer', {})).statusCode,
     ).toBe(403);
   });
 });
@@ -120,20 +117,26 @@ describe('the clearance', () => {
 describe('the gate', () => {
   it('says a prepared shot may fire', async () => {
     await walkClearance();
-    const response = await post(`/blasts/${blastId}/gate`, 'shotfirer', { observation, schedule });
+    const response = await harness.post(`/blasts/${blastId}/gate`, 'shotfirer', {
+      observation,
+      schedule,
+    });
     expect(response.json().mayFire).toBe(true);
   });
 
   it('says why it may not', async () => {
-    await post(`/blasts/${blastId}/clearance`, 'shotfirer');
-    const response = await post(`/blasts/${blastId}/gate`, 'shotfirer', { observation, schedule });
+    await harness.post(`/blasts/${blastId}/clearance`, 'shotfirer');
+    const response = await harness.post(`/blasts/${blastId}/gate`, 'shotfirer', {
+      observation,
+      schedule,
+    });
     expect(response.json().mayFire).toBe(false);
     expect(response.json().byArea.clearance).toBeGreaterThan(0);
   });
 
   it('stops the shot for lightning', async () => {
     await walkClearance();
-    const response = await post(`/blasts/${blastId}/gate`, 'shotfirer', {
+    const response = await harness.post(`/blasts/${blastId}/gate`, 'shotfirer', {
       observation: { ...observation, lightningDistanceKm: 5 },
       schedule,
     });
@@ -142,7 +145,7 @@ describe('the gate', () => {
 
   it('refuses a weather observation that is not one', async () => {
     await walkClearance();
-    const response = await post(`/blasts/${blastId}/gate`, 'shotfirer', {
+    const response = await harness.post(`/blasts/${blastId}/gate`, 'shotfirer', {
       observation: { ...observation, windBearingDeg: 400 },
       schedule,
     });
@@ -151,7 +154,7 @@ describe('the gate', () => {
 
   it('refuses an override with no reason behind it', async () => {
     await walkClearance();
-    const response = await post(`/blasts/${blastId}/gate`, 'shotfirer', {
+    const response = await harness.post(`/blasts/${blastId}/gate`, 'shotfirer', {
       observation,
       schedule,
       overrides: [{ rule: 'stemming.minimum', reason: 'ok' }],
@@ -163,15 +166,21 @@ describe('the gate', () => {
 describe('firing', () => {
   it('fires a shot that passes the gate', async () => {
     await walkClearance();
-    const response = await post(`/blasts/${blastId}/fire`, 'shotfirer', { observation, schedule });
+    const response = await harness.post(`/blasts/${blastId}/fire`, 'shotfirer', {
+      observation,
+      schedule,
+    });
     expect(response.statusCode).toBe(200);
     expect(response.json().blast.state).toBe('fired');
     expect(response.json().blast.shotfirerId).toBe('per_shotfirer');
   });
 
   it('refuses a shot that does not', async () => {
-    await post(`/blasts/${blastId}/clearance`, 'shotfirer');
-    const response = await post(`/blasts/${blastId}/fire`, 'shotfirer', { observation, schedule });
+    await harness.post(`/blasts/${blastId}/clearance`, 'shotfirer');
+    const response = await harness.post(`/blasts/${blastId}/fire`, 'shotfirer', {
+      observation,
+      schedule,
+    });
     expect(response.statusCode).toBe(422);
     expect(response.json().details.violations.length).toBeGreaterThan(0);
   });
@@ -179,18 +188,19 @@ describe('firing', () => {
   it('keeps a designer away from the firing button', async () => {
     await walkClearance();
     expect(
-      (await post(`/blasts/${blastId}/fire`, 'designer', { observation, schedule })).statusCode,
+      (await harness.post(`/blasts/${blastId}/fire`, 'designer', { observation, schedule }))
+        .statusCode,
     ).toBe(403);
   });
 
   it('records a misfire and then that it was made safe', async () => {
     await walkClearance();
-    await post(`/blasts/${blastId}/fire`, 'shotfirer', { observation, schedule });
-    const misfire = await post(`/blasts/${blastId}/misfire`, 'shotfirer', {
+    await harness.post(`/blasts/${blastId}/fire`, 'shotfirer', { observation, schedule });
+    const misfire = await harness.post(`/blasts/${blastId}/misfire`, 'shotfirer', {
       reason: 'row three did not go',
     });
     expect(misfire.json().blast.state).toBe('misfired');
-    const safe = await post(`/blasts/${blastId}/made-safe`, 'shotfirer', {
+    const safe = await harness.post(`/blasts/${blastId}/made-safe`, 'shotfirer', {
       note: 'washed out and reprimed',
     });
     expect(safe.json().blast.state).toBe('made_safe');
@@ -198,9 +208,9 @@ describe('firing', () => {
 
   it('refuses a misfire with nothing written down', async () => {
     await walkClearance();
-    await post(`/blasts/${blastId}/fire`, 'shotfirer', { observation, schedule });
+    await harness.post(`/blasts/${blastId}/fire`, 'shotfirer', { observation, schedule });
     expect(
-      (await post(`/blasts/${blastId}/misfire`, 'shotfirer', { reason: 'x' })).statusCode,
+      (await harness.post(`/blasts/${blastId}/misfire`, 'shotfirer', { reason: 'x' })).statusCode,
     ).toBe(422);
   });
 });

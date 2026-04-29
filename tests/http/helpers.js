@@ -44,6 +44,42 @@ export async function standUp({ at = '2025-09-17T09:00:00Z' } = {}) {
     as(role) {
       return { authorization: `Bearer ${tokens[role]}` };
     },
+    /**
+     * Ten test files had written these wrappers out for themselves, and three of
+     * them had quietly diverged on whether a body is sent when none is given,
+     * which is the difference between a 200 and a 422 on a route with a body
+     * schema. They are here now.
+     */
+    request(method, url, role, payload, headers = {}) {
+      return app.inject({
+        method,
+        url,
+        headers: { ...(role ? { authorization: `Bearer ${tokens[role]}` } : {}), ...headers },
+        ...(payload === undefined ? {} : { payload }),
+      });
+    },
+    post(url, role, payload, headers) {
+      return this.request('POST', url, role, payload, headers);
+    },
+    get(url, role, headers) {
+      return this.request('GET', url, role, undefined, headers);
+    },
+    put(url, role, payload) {
+      return this.request('PUT', url, role, payload);
+    },
+    patch(url, role, payload) {
+      return this.request('PATCH', url, role, payload);
+    },
+    del(url, role) {
+      return this.request('DELETE', url, role);
+    },
+    /** The json of a response, with the status checked so a failure reads clearly. */
+    expectOk(response, code = 200) {
+      if (response.statusCode !== code) {
+        throw new Error(`expected ${code}, got ${response.statusCode}: ${response.payload}`);
+      }
+      return response.json();
+    },
     async close() {
       await app.close();
       closeTestDatabase(db);

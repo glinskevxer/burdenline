@@ -5,21 +5,8 @@ let harness;
 let siteId;
 let benchId;
 
-async function post(url, role, payload) {
-  return harness.app.inject({
-    method: 'POST',
-    url,
-    headers: harness.as(role),
-    ...(payload !== undefined ? { payload } : {}),
-  });
-}
-
-async function get(url, role) {
-  return harness.app.inject({ method: 'GET', url, headers: harness.as(role) });
-}
-
 async function rig(overrides = {}) {
-  return post(`/sites/${siteId}/rigs`, 'admin', {
+  return harness.post(`/sites/${siteId}/rigs`, 'admin', {
     fleetNumber: 'DR-01',
     make: 'Atlas',
     holeDiameterMinMm: 89,
@@ -29,7 +16,7 @@ async function rig(overrides = {}) {
 }
 
 async function pattern(diameter = 102, reference = 'MDW-2026-030') {
-  const response = await post(`/benches/${benchId}/patterns`, 'designer', {
+  const response = await harness.post(`/benches/${benchId}/patterns`, 'designer', {
     reference,
     origin: { easting: 1000, northing: 2000, level: 84 },
     faceBearingDeg: 0,
@@ -46,9 +33,9 @@ async function pattern(diameter = 102, reference = 'MDW-2026-030') {
 
 beforeEach(async () => {
   harness = await standUp({ at: '2026-02-24T06:00:00.000Z' });
-  siteId = (await post('/sites', 'admin', { code: 'MDW', name: 'Midway' })).json().site.id;
+  siteId = (await harness.post('/sites', 'admin', { code: 'MDW', name: 'Midway' })).json().site.id;
   benchId = (
-    await post(`/sites/${siteId}/benches`, 'designer', {
+    await harness.post(`/sites/${siteId}/benches`, 'designer', {
       name: 'North 60',
       crestLevelM: 84,
       toeLevelM: 69,
@@ -65,7 +52,7 @@ afterEach(async () => {
 describe('the fleet', () => {
   it('creates a rig and lists it', async () => {
     expect((await rig()).statusCode).toBe(201);
-    const response = await get(`/sites/${siteId}/rigs`, 'viewer');
+    const response = await harness.get(`/sites/${siteId}/rigs`, 'viewer');
     expect(response.json().rigs).toHaveLength(1);
     expect(response.json().rigs[0].status).toBe('available');
   });
@@ -80,7 +67,7 @@ describe('the fleet', () => {
   });
 
   it('keeps a designer from creating one', async () => {
-    const response = await post(`/sites/${siteId}/rigs`, 'designer', {
+    const response = await harness.post(`/sites/${siteId}/rigs`, 'designer', {
       fleetNumber: 'DR-02',
       holeDiameterMinMm: 89,
       holeDiameterMaxMm: 115,
@@ -97,13 +84,17 @@ describe('the fleet', () => {
       payload: { status: 'down' },
     });
     expect(down.json().rig.status).toBe('down');
-    expect((await get(`/sites/${siteId}/rigs?status=down`, 'viewer')).json().rigs).toHaveLength(1);
+    expect(
+      (await harness.get(`/sites/${siteId}/rigs?status=down`, 'viewer')).json().rigs,
+    ).toHaveLength(1);
   });
 
   it('retires one and then refuses', async () => {
     const rigId = (await rig()).json().rig.id;
-    expect((await post(`/rigs/${rigId}/retire`, 'admin')).json().rig.status).toBe('retired');
-    expect((await post(`/rigs/${rigId}/retire`, 'admin')).statusCode).toBe(409);
+    expect((await harness.post(`/rigs/${rigId}/retire`, 'admin')).json().rig.status).toBe(
+      'retired',
+    );
+    expect((await harness.post(`/rigs/${rigId}/retire`, 'admin')).statusCode).toBe(409);
   });
 });
 
@@ -111,7 +102,7 @@ describe('matching a rig to a pattern', () => {
   it('says which rigs can drill it', async () => {
     await rig();
     const patternId = await pattern(102);
-    const response = await get(`/patterns/${patternId}/rigs`, 'viewer');
+    const response = await harness.get(`/patterns/${patternId}/rigs`, 'viewer');
     expect(response.json().suitable).toHaveLength(1);
     expect(response.json().unsuitable).toHaveLength(0);
   });
@@ -119,7 +110,7 @@ describe('matching a rig to a pattern', () => {
   it('says why a rig cannot', async () => {
     await rig({ holeDiameterMinMm: 76, holeDiameterMaxMm: 89 });
     const patternId = await pattern(115, 'MDW-2026-031');
-    const response = await get(`/patterns/${patternId}/rigs`, 'viewer');
+    const response = await harness.get(`/patterns/${patternId}/rigs`, 'viewer');
     expect(response.json().suitable).toHaveLength(0);
     expect(response.json().unsuitable[0].reasons[0]).toContain('76 to 89');
   });
@@ -128,40 +119,41 @@ describe('matching a rig to a pattern', () => {
 describe('shifts', () => {
   it('records one and adds the hours onto the rig', async () => {
     const rigId = (await rig()).json().rig.id;
-    const response = await post(`/rigs/${rigId}/shifts`, 'viewer', {
+    const response = await harness.post(`/rigs/${rigId}/shifts`, 'viewer', {
       shift: 'day',
       metresDrilled: 220,
       holesDrilled: 14,
       hours: 8,
     });
     expect(response.statusCode).toBe(201);
-    expect((await get(`/sites/${siteId}/rigs`, 'viewer')).json().rigs[0].hoursRun).toBe(8);
+    expect((await harness.get(`/sites/${siteId}/rigs`, 'viewer')).json().rigs[0].hoursRun).toBe(8);
   });
 
   it('refuses two records for the same shift', async () => {
     const rigId = (await rig()).json().rig.id;
     const shift = { shift: 'day', shiftDate: '2026-02-24', hours: 8 };
-    await post(`/rigs/${rigId}/shifts`, 'viewer', shift);
-    expect((await post(`/rigs/${rigId}/shifts`, 'viewer', shift)).statusCode).toBe(409);
+    await harness.post(`/rigs/${rigId}/shifts`, 'viewer', shift);
+    expect((await harness.post(`/rigs/${rigId}/shifts`, 'viewer', shift)).statusCode).toBe(409);
   });
 
   it('refuses a shift longer than a day', async () => {
     const rigId = (await rig()).json().rig.id;
     expect(
-      (await post(`/rigs/${rigId}/shifts`, 'viewer', { shift: 'day', hours: 30 })).statusCode,
+      (await harness.post(`/rigs/${rigId}/shifts`, 'viewer', { shift: 'day', hours: 30 }))
+        .statusCode,
     ).toBe(422);
   });
 
   it('reports metres per drilling hour', async () => {
     const rigId = (await rig()).json().rig.id;
-    await post(`/rigs/${rigId}/shifts`, 'viewer', {
+    await harness.post(`/rigs/${rigId}/shifts`, 'viewer', {
       shift: 'day',
       metresDrilled: 220,
       hours: 8,
       downtimeMinutes: 60,
       downtimeReason: 'bit change',
     });
-    const response = await get(`/rigs/${rigId}/shifts`, 'viewer');
+    const response = await harness.get(`/rigs/${rigId}/shifts`, 'viewer');
     expect(response.json().productivity.metresPerHour).toBeCloseTo(31.43, 2);
     expect(response.json().productivity.downtimeByReason['bit change']).toBe(60);
   });

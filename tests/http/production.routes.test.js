@@ -7,41 +7,28 @@ let blastId;
 
 const at = '2026-02-02T09:00:00.000Z';
 
-async function post(url, role, payload) {
-  return harness.app.inject({
-    method: 'POST',
-    url,
-    headers: harness.as(role),
-    ...(payload !== undefined ? { payload } : {}),
-  });
-}
-
-async function get(url, role) {
-  return harness.app.inject({ method: 'GET', url, headers: harness.as(role) });
-}
-
 async function firedBlast() {
   const blast = (
-    await post(`/sites/${siteId}/blasts`, 'designer', { reference: 'MDW-2026-010' })
+    await harness.post(`/sites/${siteId}/blasts`, 'designer', { reference: 'MDW-2026-010' })
   ).json().blast.id;
-  await post(`/blasts/${blast}/complete-design`, 'designer');
-  await post(`/blasts/${blast}/submit`, 'designer');
-  await post(`/blasts/${blast}/approve`, 'manager');
+  await harness.post(`/blasts/${blast}/complete-design`, 'designer');
+  await harness.post(`/blasts/${blast}/submit`, 'designer');
+  await harness.post(`/blasts/${blast}/approve`, 'manager');
   await harness.app.inject({
     method: 'PUT',
     url: `/blasts/${blast}/totals`,
     headers: harness.as('designer'),
     payload: { volumeM3: 3780, holeCount: 24 },
   });
-  await post(`/blasts/${blast}/load`, 'shotfirer');
-  await post(`/blasts/${blast}/tie-in-complete`, 'shotfirer');
+  await harness.post(`/blasts/${blast}/load`, 'shotfirer');
+  await harness.post(`/blasts/${blast}/tie-in-complete`, 'shotfirer');
   harness.db.prepare("UPDATE blast SET state = 'fired', fired_at = ? WHERE id = ?").run(at, blast);
   return blast;
 }
 
 beforeEach(async () => {
   harness = await standUp({ at });
-  siteId = (await post('/sites', 'admin', { code: 'MDW', name: 'Midway' })).json().site.id;
+  siteId = (await harness.post('/sites', 'admin', { code: 'MDW', name: 'Midway' })).json().site.id;
   blastId = await firedBlast();
 });
 
@@ -51,7 +38,7 @@ afterEach(async () => {
 
 describe('surveys', () => {
   it('records one and works out the overbreak', async () => {
-    const response = await post(`/blasts/${blastId}/surveys`, 'designer', {
+    const response = await harness.post(`/blasts/${blastId}/surveys`, 'designer', {
       method: 'laser_scan',
       volumeM3: 3900,
     });
@@ -60,7 +47,7 @@ describe('surveys', () => {
   });
 
   it('refuses a method nobody surveys with', async () => {
-    const response = await post(`/blasts/${blastId}/surveys`, 'designer', {
+    const response = await harness.post(`/blasts/${blastId}/surveys`, 'designer', {
       method: 'pacing',
       volumeM3: 3900,
     });
@@ -68,28 +55,35 @@ describe('surveys', () => {
   });
 
   it('lists them and says which one to believe', async () => {
-    await post(`/blasts/${blastId}/surveys`, 'designer', { method: 'truck_count', volumeM3: 4100 });
-    await post(`/blasts/${blastId}/surveys`, 'designer', {
+    await harness.post(`/blasts/${blastId}/surveys`, 'designer', {
+      method: 'truck_count',
+      volumeM3: 4100,
+    });
+    await harness.post(`/blasts/${blastId}/surveys`, 'designer', {
       method: 'laser_scan',
       volumeM3: 3900,
       surveyedAt: '2026-02-03T09:00:00.000Z',
     });
-    const response = await get(`/blasts/${blastId}/surveys`, 'viewer');
+    const response = await harness.get(`/blasts/${blastId}/surveys`, 'viewer');
     expect(response.json().surveys).toHaveLength(2);
     expect(response.json().preferred.method).toBe('laser_scan');
   });
 
   it('keeps a viewer from recording one', async () => {
     expect(
-      (await post(`/blasts/${blastId}/surveys`, 'viewer', { method: 'laser_scan', volumeM3: 1 }))
-        .statusCode,
+      (
+        await harness.post(`/blasts/${blastId}/surveys`, 'viewer', {
+          method: 'laser_scan',
+          volumeM3: 1,
+        })
+      ).statusCode,
     ).toBe(403);
   });
 });
 
 describe('digging', () => {
   async function inspect() {
-    return post(`/blasts/${blastId}/inspection`, 'shotfirer', {
+    return harness.post(`/blasts/${blastId}/inspection`, 'shotfirer', {
       muckpileShape: 'moderate',
       throwM: 12,
       toeGrade: 'none',
@@ -97,7 +91,7 @@ describe('digging', () => {
   }
 
   it('refuses a dig record before the muckpile is walked', async () => {
-    const response = await post(`/blasts/${blastId}/dig-records`, 'viewer', {
+    const response = await harness.post(`/blasts/${blastId}/dig-records`, 'viewer', {
       tonnes: 1400,
       hours: 8,
     });
@@ -106,7 +100,7 @@ describe('digging', () => {
 
   it('takes one once it has been', async () => {
     await inspect();
-    const response = await post(`/blasts/${blastId}/dig-records`, 'viewer', {
+    const response = await harness.post(`/blasts/${blastId}/dig-records`, 'viewer', {
       tonnes: 1400,
       hours: 8,
     });
@@ -115,15 +109,15 @@ describe('digging', () => {
 
   it('reports the rate', async () => {
     await inspect();
-    await post(`/blasts/${blastId}/dig-records`, 'viewer', { tonnes: 1400, hours: 8 });
-    await post(`/blasts/${blastId}/dig-records`, 'viewer', {
+    await harness.post(`/blasts/${blastId}/dig-records`, 'viewer', { tonnes: 1400, hours: 8 });
+    await harness.post(`/blasts/${blastId}/dig-records`, 'viewer', {
       tonnes: 1650,
       hours: 9,
       recordedOn: '2026-02-03',
       delayMinutes: 30,
       delayReason: 'crusher stopped',
     });
-    const response = await get(`/blasts/${blastId}/digging`, 'viewer');
+    const response = await harness.get(`/blasts/${blastId}/digging`, 'viewer');
     expect(response.json().rate.tonnes).toBe(3050);
     expect(response.json().rate.delaysByReason['crusher stopped']).toBe(30);
   });
@@ -131,7 +125,7 @@ describe('digging', () => {
   it('refuses a record with no hours in it', async () => {
     await inspect();
     expect(
-      (await post(`/blasts/${blastId}/dig-records`, 'viewer', { tonnes: 100, hours: 0 }))
+      (await harness.post(`/blasts/${blastId}/dig-records`, 'viewer', { tonnes: 100, hours: 0 }))
         .statusCode,
     ).toBe(422);
   });
@@ -139,7 +133,7 @@ describe('digging', () => {
 
 describe('secondary breaking and yield', () => {
   it('records a day with the hammer', async () => {
-    const response = await post(`/blasts/${blastId}/secondary-breaking`, 'viewer', {
+    const response = await harness.post(`/blasts/${blastId}/secondary-breaking`, 'viewer', {
       method: 'hydraulic_hammer',
       boulderCount: 14,
       hours: 6,
@@ -148,25 +142,34 @@ describe('secondary breaking and yield', () => {
   });
 
   it('puts the yield together', async () => {
-    await post(`/blasts/${blastId}/surveys`, 'designer', { method: 'laser_scan', volumeM3: 3900 });
-    await post(`/blasts/${blastId}/secondary-breaking`, 'viewer', {
+    await harness.post(`/blasts/${blastId}/surveys`, 'designer', {
+      method: 'laser_scan',
+      volumeM3: 3900,
+    });
+    await harness.post(`/blasts/${blastId}/secondary-breaking`, 'viewer', {
       method: 'hydraulic_hammer',
       hours: 6,
     });
-    const response = await get(`/blasts/${blastId}/yield`, 'viewer');
+    const response = await harness.get(`/blasts/${blastId}/yield`, 'viewer');
     expect(response.json().yield.volume.verdict).toBe('as_designed');
     expect(response.json().secondaryBreaking.hours).toBe(6);
   });
 
   it('compares the weighbridge when it is given one', async () => {
-    await post(`/blasts/${blastId}/surveys`, 'designer', { method: 'laser_scan', volumeM3: 1000 });
-    const response = await get(`/blasts/${blastId}/yield?truckedTonnes=2650`, 'viewer');
+    await harness.post(`/blasts/${blastId}/surveys`, 'designer', {
+      method: 'laser_scan',
+      volumeM3: 1000,
+    });
+    const response = await harness.get(`/blasts/${blastId}/yield?truckedTonnes=2650`, 'viewer');
     expect(response.json().yield.tonnage.withinTolerance).toBe(true);
   });
 
   it('lists what was surveyed in a period', async () => {
-    await post(`/blasts/${blastId}/surveys`, 'designer', { method: 'laser_scan', volumeM3: 3900 });
-    const response = await get(
+    await harness.post(`/blasts/${blastId}/surveys`, 'designer', {
+      method: 'laser_scan',
+      volumeM3: 3900,
+    });
+    const response = await harness.get(
       `/sites/${siteId}/surveys?from=2026-01-01T00:00:00.000Z&to=2026-03-01T00:00:00.000Z`,
       'viewer',
     );
@@ -174,6 +177,6 @@ describe('secondary breaking and yield', () => {
   });
 
   it('refuses a period with no dates', async () => {
-    expect((await get(`/sites/${siteId}/surveys`, 'viewer')).statusCode).toBe(422);
+    expect((await harness.get(`/sites/${siteId}/surveys`, 'viewer')).statusCode).toBe(422);
   });
 });

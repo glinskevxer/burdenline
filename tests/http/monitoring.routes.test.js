@@ -23,10 +23,6 @@ async function post(url, role, payload) {
   return harness.app.inject({ method: 'POST', url, headers: harness.as(role), payload });
 }
 
-async function get(url, role) {
-  return harness.app.inject({ method: 'GET', url, headers: harness.as(role) });
-}
-
 beforeEach(async () => {
   harness = await standUp({ at });
   siteId = (await post('/sites', 'admin', { code: 'MDW', name: 'Midway' })).json().site.id;
@@ -47,7 +43,7 @@ afterEach(async () => {
 
 describe('receptors', () => {
   it('creates one and lists it', async () => {
-    const response = await get(`/sites/${siteId}/receptors`, 'viewer');
+    const response = await harness.get(`/sites/${siteId}/receptors`, 'viewer');
     expect(response.json().receptors).toHaveLength(1);
     expect(response.json().receptors[0].easting).toBe(1400);
   });
@@ -89,7 +85,7 @@ describe('receptors', () => {
       easting: 1600,
       northing: 2000,
     });
-    const response = await get(`/sites/${siteId}/receptors?monitored=true`, 'viewer');
+    const response = await harness.get(`/sites/${siteId}/receptors?monitored=true`, 'viewer');
     expect(response.json().receptors).toHaveLength(1);
   });
 });
@@ -139,7 +135,7 @@ describe('importing records', () => {
       receptorId,
       distanceM: 412,
     });
-    const response = await get(`/sites/${siteId}/monitor-records`, 'viewer');
+    const response = await harness.get(`/sites/${siteId}/monitor-records`, 'viewer');
     expect(response.json().records).toHaveLength(1);
     expect(response.json().records[0].peakComponent).toBe('transverse');
   });
@@ -152,7 +148,7 @@ describe('compliance', () => {
       receptorId,
       distanceM: 412,
     });
-    const response = await get(`/sites/${siteId}/compliance`, 'viewer');
+    const response = await harness.get(`/sites/${siteId}/compliance`, 'viewer');
     expect(response.json().summary.compliant).toBe(true);
   });
 
@@ -162,7 +158,7 @@ describe('compliance', () => {
       receptorId,
       distanceM: 412,
     });
-    const response = await get(`/sites/${siteId}/compliance`, 'viewer');
+    const response = await harness.get(`/sites/${siteId}/compliance`, 'viewer');
     expect(response.json().exceedances).toHaveLength(1);
     expect(response.json().summary.compliant).toBe(false);
   });
@@ -175,7 +171,7 @@ describe('matching to shots', () => {
       receptorId,
       distanceM: 412,
     });
-    const response = await get(`/sites/${siteId}/monitor-records/unmatched`, 'viewer');
+    const response = await harness.get(`/sites/${siteId}/monitor-records/unmatched`, 'viewer');
     expect(response.json().suggestions).toHaveLength(1);
     expect(response.json().suggestions[0].matched).toBe(false);
   });
@@ -183,7 +179,7 @@ describe('matching to shots', () => {
 
 describe('the site law', () => {
   it('answers 409 while nothing has been fitted', async () => {
-    const response = await get(`/sites/${siteId}/site-law`, 'viewer');
+    const response = await harness.get(`/sites/${siteId}/site-law`, 'viewer');
     expect(response.statusCode).toBe(409);
   });
 

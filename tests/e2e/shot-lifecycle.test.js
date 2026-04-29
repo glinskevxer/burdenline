@@ -25,14 +25,6 @@ async function post(url, role, payload) {
   return response;
 }
 
-async function put(url, role, payload) {
-  return harness.app.inject({ method: 'PUT', url, headers: harness.as(role), payload });
-}
-
-async function get(url, role) {
-  return harness.app.inject({ method: 'GET', url, headers: harness.as(role) });
-}
-
 function expectOk(response, code = 200) {
   if (response.statusCode !== code) {
     throw new Error(`${response.statusCode} from the last call: ${response.payload}`);
@@ -205,7 +197,9 @@ describe('a shot from an empty database to a regulator return', () => {
     expectOk(await post(`/blasts/${blast.id}/complete-design`, 'designer'));
     expectOk(await post(`/blasts/${blast.id}/submit`, 'designer'));
     expectOk(await post(`/blasts/${blast.id}/approve`, 'manager'));
-    expectOk(await put(`/blasts/${blast.id}/tie-in`, 'designer', { connectors: tieIn.connectors }));
+    expectOk(
+      await harness.put(`/blasts/${blast.id}/tie-in`, 'designer', { connectors: tieIn.connectors }),
+    );
     const issued = expectOk(
       await post(`/blasts/${blast.id}/issues`, 'store', {
         magazineId: magazine.id,
@@ -215,7 +209,7 @@ describe('a shot from an empty database to a regulator return', () => {
     );
     expect(issued.totalKg).toBe(1040);
     expect(
-      expectOk(await get(`/magazines/${magazine.id}/stock`, 'viewer')).stock.netExplosiveKg,
+      expectOk(await harness.get(`/magazines/${magazine.id}/stock`, 'viewer')).stock.netExplosiveKg,
     ).toBe(960);
 
     // Loading, tying in, the clearance and the gate.
@@ -275,18 +269,18 @@ describe('a shot from an empty database to a regulator return', () => {
       201,
     );
 
-    const yielded = expectOk(await get(`/blasts/${blast.id}/yield`, 'viewer'));
+    const yielded = expectOk(await harness.get(`/blasts/${blast.id}/yield`, 'viewer'));
     expect(yielded.yield.surveyedM3).toBe(1900);
     expect(yielded.yield.digging.tonnesPerHour).toBeCloseTo(533.33, 2);
 
-    const report = expectOk(await get(`/blasts/${blast.id}/report`, 'viewer'));
+    const report = expectOk(await harness.get(`/blasts/${blast.id}/report`, 'viewer'));
     expect(report.blast.state).toBe('fired');
     expect(report.metresDrilled).toBe(192);
     expect(report.diggable).toBe(true);
 
     // The month, and the return that goes to the regulator.
     const period = expectOk(
-      await get(
+      await harness.get(
         `/sites/${site.id}/report?from=2026-03-01T00:00:00.000Z&to=2026-03-31T00:00:00.000Z`,
         'manager',
       ),
@@ -294,7 +288,7 @@ describe('a shot from an empty database to a regulator return', () => {
     expect(period.blastCount).toBe(1);
 
     const pack = expectOk(
-      await get(
+      await harness.get(
         `/sites/${site.id}/regulator-pack?from=2026-03-01T00:00:00.000Z&to=2026-03-31T00:00:00.000Z`,
         'manager',
       ),
@@ -336,6 +330,8 @@ describe('a shot from an empty database to a regulator return', () => {
     expect(
       refused.json().details.violations.some((item) => item.rule === 'clearance.outstanding'),
     ).toBe(true);
-    expect(expectOk(await get(`/blasts/${blast.id}`, 'viewer')).blast.state).toBe('tied_in');
+    expect(expectOk(await harness.get(`/blasts/${blast.id}`, 'viewer')).blast.state).toBe(
+      'tied_in',
+    );
   });
 });

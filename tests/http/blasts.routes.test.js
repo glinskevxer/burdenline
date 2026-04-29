@@ -28,15 +28,6 @@ async function createBlast(overrides = {}) {
   });
 }
 
-async function post(url, role, payload) {
-  return harness.app.inject({
-    method: 'POST',
-    url,
-    headers: harness.as(role),
-    ...(payload ? { payload } : {}),
-  });
-}
-
 describe('POST /sites/:siteId/blasts', () => {
   it('creates a shot in draft', async () => {
     const response = await createBlast();
@@ -68,37 +59,37 @@ describe('POST /sites/:siteId/blasts', () => {
 describe('the lifecycle routes', () => {
   it('walks a shot from draft to approved', async () => {
     const blastId = (await createBlast()).json().blast.id;
-    expect((await post(`/blasts/${blastId}/complete-design`, 'designer')).json().blast.state).toBe(
-      'designed',
-    );
-    expect((await post(`/blasts/${blastId}/submit`, 'designer')).json().blast.state).toBe(
+    expect(
+      (await harness.post(`/blasts/${blastId}/complete-design`, 'designer')).json().blast.state,
+    ).toBe('designed');
+    expect((await harness.post(`/blasts/${blastId}/submit`, 'designer')).json().blast.state).toBe(
       'submitted',
     );
-    const approved = await post(`/blasts/${blastId}/approve`, 'manager');
+    const approved = await harness.post(`/blasts/${blastId}/approve`, 'manager');
     expect(approved.json().blast.state).toBe('approved');
     expect(approved.json().blast.approvedBy).toBe('per_manager');
   });
 
   it('refuses a move that is not allowed from here', async () => {
     const blastId = (await createBlast()).json().blast.id;
-    const response = await post(`/blasts/${blastId}/approve`, 'manager');
+    const response = await harness.post(`/blasts/${blastId}/approve`, 'manager');
     expect(response.statusCode).toBe(409);
     expect(response.json().details.allowed).toEqual(['submitted']);
   });
 
   it('will not let a designer approve their own shot', async () => {
     const blastId = (await createBlast()).json().blast.id;
-    await post(`/blasts/${blastId}/complete-design`, 'designer');
-    await post(`/blasts/${blastId}/submit`, 'designer');
-    expect((await post(`/blasts/${blastId}/approve`, 'designer')).statusCode).toBe(403);
+    await harness.post(`/blasts/${blastId}/complete-design`, 'designer');
+    await harness.post(`/blasts/${blastId}/submit`, 'designer');
+    expect((await harness.post(`/blasts/${blastId}/approve`, 'designer')).statusCode).toBe(403);
   });
 
   it('needs a reason to reject', async () => {
     const blastId = (await createBlast()).json().blast.id;
-    await post(`/blasts/${blastId}/complete-design`, 'designer');
-    await post(`/blasts/${blastId}/submit`, 'designer');
-    expect((await post(`/blasts/${blastId}/reject`, 'manager', {})).statusCode).toBe(422);
-    const rejected = await post(`/blasts/${blastId}/reject`, 'manager', {
+    await harness.post(`/blasts/${blastId}/complete-design`, 'designer');
+    await harness.post(`/blasts/${blastId}/submit`, 'designer');
+    expect((await harness.post(`/blasts/${blastId}/reject`, 'manager', {})).statusCode).toBe(422);
+    const rejected = await harness.post(`/blasts/${blastId}/reject`, 'manager', {
       reason: 'burden on row one is too thin',
     });
     expect(rejected.json().blast.state).toBe('designed');
@@ -106,7 +97,7 @@ describe('the lifecycle routes', () => {
 
   it('needs a reason to abandon', async () => {
     const blastId = (await createBlast()).json().blast.id;
-    const response = await post(`/blasts/${blastId}/abandon`, 'manager', {
+    const response = await harness.post(`/blasts/${blastId}/abandon`, 'manager', {
       reason: 'face changed',
     });
     expect(response.json().blast.state).toBe('abandoned');
@@ -115,7 +106,7 @@ describe('the lifecycle routes', () => {
 
   it('says what can happen next after every move', async () => {
     const blastId = (await createBlast()).json().blast.id;
-    const response = await post(`/blasts/${blastId}/complete-design`, 'designer');
+    const response = await harness.post(`/blasts/${blastId}/complete-design`, 'designer');
     expect(response.json().next.sort()).toEqual(['abandon', 'revise', 'submit']);
   });
 });
@@ -123,7 +114,7 @@ describe('the lifecycle routes', () => {
 describe('GET /blasts/:blastId', () => {
   it('reads the shot with its history', async () => {
     const blastId = (await createBlast()).json().blast.id;
-    await post(`/blasts/${blastId}/complete-design`, 'designer');
+    await harness.post(`/blasts/${blastId}/complete-design`, 'designer');
     const response = await harness.app.inject({
       method: 'GET',
       url: `/blasts/${blastId}`,
@@ -136,7 +127,7 @@ describe('GET /blasts/:blastId', () => {
   it('lists the shots on a site by state', async () => {
     await createBlast();
     const second = (await createBlast({ reference: 'MDW-2025-015' })).json().blast.id;
-    await post(`/blasts/${second}/complete-design`, 'designer');
+    await harness.post(`/blasts/${second}/complete-design`, 'designer');
     const response = await harness.app.inject({
       method: 'GET',
       url: `/sites/${siteId}/blasts?state=designed`,

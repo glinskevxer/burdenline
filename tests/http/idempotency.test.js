@@ -16,10 +16,6 @@ async function post(url, role, payload, headers = {}) {
   });
 }
 
-async function get(url, role) {
-  return harness.app.inject({ method: 'GET', url, headers: harness.as(role) });
-}
-
 beforeEach(async () => {
   harness = await standUp({ at: '2026-04-14T09:00:00.000Z' });
   siteId = (await post('/sites', 'admin', { code: 'MDW', name: 'Midway' })).json().site.id;
@@ -103,7 +99,7 @@ describe('a repeated write', () => {
     expect(second.headers['idempotent-replay']).toBe('true');
     expect(second.json().line.id).toBe(first.json().line.id);
     expect(
-      (await get(`/magazines/${magazineId}/stock`, 'viewer')).json().stock.netExplosiveKg,
+      (await harness.get(`/magazines/${magazineId}/stock`, 'viewer')).json().stock.netExplosiveKg,
     ).toBe(400);
   });
 
@@ -111,7 +107,7 @@ describe('a repeated write', () => {
     await post(`/magazines/${magazineId}/movements`, 'store', receipt());
     await post(`/magazines/${magazineId}/movements`, 'store', receipt());
     expect(
-      (await get(`/magazines/${magazineId}/stock`, 'viewer')).json().stock.netExplosiveKg,
+      (await harness.get(`/magazines/${magazineId}/stock`, 'viewer')).json().stock.netExplosiveKg,
     ).toBe(800);
   });
 
@@ -166,7 +162,7 @@ describe('a repeated write', () => {
       [idempotencyHeader]: 'b',
     });
     expect(
-      (await get(`/magazines/${magazineId}/stock`, 'viewer')).json().stock.netExplosiveKg,
+      (await harness.get(`/magazines/${magazineId}/stock`, 'viewer')).json().stock.netExplosiveKg,
     ).toBe(800);
   });
 });
