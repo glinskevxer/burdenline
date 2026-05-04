@@ -47,9 +47,14 @@ export async function registerAuth(app, { config }) {
     try {
       await request.jwtVerify();
     } catch (cause) {
-      throw new AuthenticationError(
-        cause?.code === 'FAST_JWT_EXPIRED' ? 'that token has expired' : 'not authenticated',
-      );
+      // The library has changed the code on this twice, so the message is read
+      // as well. Telling somebody their token has expired is the difference
+      // between them signing in again and ringing the office.
+      const expired =
+        cause?.code === 'FAST_JWT_EXPIRED' ||
+        cause?.code === 'FST_JWT_AUTHORIZATION_TOKEN_EXPIRED' ||
+        /expired/i.test(cause?.message ?? '');
+      throw new AuthenticationError(expired ? 'that token has expired' : 'not authenticated');
     }
     const payload = request.user ?? {};
     request.actor = {
