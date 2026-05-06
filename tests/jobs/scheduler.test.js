@@ -57,6 +57,7 @@ describe('the job table', () => {
   it('carries the three sweeps', () => {
     expect(jobNames()).toEqual([
       'certificate-expiry',
+      'exceedance-watch',
       'notice-sweep',
       'sleeping-holes',
       'stock-sweep',
@@ -82,7 +83,7 @@ describe('the job table', () => {
 
   it('runs the lot', async () => {
     const outcome = await runEverything(context());
-    expect(outcome.ran).toBe(5);
+    expect(outcome.ran).toBe(6);
     expect(outcome.ok).toBe(true);
   });
 });
@@ -91,7 +92,7 @@ describe('the scheduler', () => {
   it('registers a timer per job', () => {
     const timers = fakeTimers();
     const scheduler = startScheduler(context(), { timers });
-    expect(timers.registered).toHaveLength(5);
+    expect(timers.registered).toHaveLength(6);
     scheduler.stop();
     expect(timers.registered.every((handle) => handle.cleared)).toBe(true);
   });
@@ -160,7 +161,7 @@ describe('the job commands', () => {
     const { io, out } = collector();
     const commands = buildCommands({ db, clock, logger: silentLogger() });
     await run(commands, ['run-job'], io);
-    expect(out.filter((line) => line.includes(': ok'))).toHaveLength(5);
+    expect(out.filter((line) => line.includes(': ok'))).toHaveLength(6);
   });
 
   it('writes json when asked', async () => {
