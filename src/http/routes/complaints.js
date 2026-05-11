@@ -12,6 +12,9 @@ import * as community from '../../db/repositories/community.js';
 import * as blasts from '../../db/repositories/blasts.js';
 import * as monitoring from '../../db/repositories/monitoring.js';
 import { matchToBlasts, supportingRecords } from '../../domain/community/complaints.js';
+import { buildResponse, renderLetter } from '../../domain/community/response-letter.js';
+import * as sites from '../../db/repositories/sites.js';
+import { curveForReceptor, limitAt, lowestLimit } from '../../domain/vibration/limits.js';
 
 const complaintBody = {
   type: 'object',
@@ -137,6 +140,52 @@ export function complaintRoutes(app) {
       return { complaint: community.getComplaint(db, complaint.id) };
     },
   );
+
+  app.get(
+    '/complaints/:complaintId/response',
+    { preHandler: app.requireGrant('read') },
+    async (request) => {
+      const complaint = community.getComplaint(db, request.params.complaintId);
+      const site = sites.getSite(db, complaint.siteId);
+      const blast = complaint.blastId ? blasts.findBlast(db, complaint.blastId) : null;
+      const records = supportingRecords(
+        complaint,
+        monitoring.listRecords(db, complaint.siteId, { limit: 200 }),
+      ).map((record) => ({
+        ...record,
+        limitMmPerSecond: limitFor(db, record),
+      }));
+      const response = buildResponse({
+        complaint,
+        site,
+        blast,
+        records,
+        author: { id: request.actor.id, name: request.actor.name ?? request.actor.id },
+        sentOn: null,
+      });
+      return { response, letter: renderLetter(response) };
+    },
+  );
+
+  /** The limit that applied to the receptor a record came from, if it has one. */
+  function limitFor(db_, record) {
+    if (!record.receptorId) {
+      return null;
+    }
+    const receptor = monitoring
+      .listReceptors(db_, record.siteId)
+      .find((item) => item.id === record.receptorId);
+    if (!receptor) {
+      return null;
+    }
+    const curve = curveForReceptor(receptor);
+    if (curve.limitMmPerSecond !== undefined) {
+      return curve.limitMmPerSecond;
+    }
+    return record.peakFrequencyHz
+      ? limitAt(curve.name, record.peakFrequencyHz)
+      : lowestLimit(curve.name);
+  }
 
   return app;
 }

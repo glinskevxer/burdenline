@@ -1,6 +1,6 @@
 {
   "service": "burdenline",
-  "routeCount": 115,
+  "routeCount": 116,
   "routes": [
     {
       "method": "GET",
@@ -915,6 +915,12 @@
         ],
         "allowsUnknown": false
       },
+      "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/complaints/:complaintId/response",
+      "body": null,
       "query": null
     },
     {
