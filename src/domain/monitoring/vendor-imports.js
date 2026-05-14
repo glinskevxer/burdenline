@@ -18,7 +18,8 @@ import { inchesPerSecondToMmPerSecond, poundsToKg, pascalsToDecibels } from '../
 import { roundTo } from '../../lib/units.js';
 import { parseRecord } from './records.js';
 
-export const FORMATS = ['instantel', 'vibratech'];
+const FORMATS_LIST = ['instantel', 'vibratech', 'sigma'];
+export { FORMATS_LIST as FORMATS };
 
 const PSI_TO_PASCAL = 6894.757;
 
@@ -30,8 +31,11 @@ export function detectFormat(text) {
   if (head.includes('tran (in/s)') || head.includes('psi') || head.includes('vibratech')) {
     return 'vibratech';
   }
+  if (head.includes('sigma') || head.includes('event time') || head.includes('ch1 (mm/s)')) {
+    return 'sigma';
+  }
   throw new ValidationError('this file is not from a monitor the system knows', [
-    { path: 'text', message: `expected one of ${FORMATS.join(', ')}`, kind: 'unsupported' },
+    { path: 'text', message: `expected one of ${FORMATS_LIST.join(', ')}`, kind: 'unsupported' },
   ]);
 }
 
@@ -47,97 +51,136 @@ export function readPreamble(text) {
   return preamble;
 }
 
-export function parseInstantel(text, options = {}) {
-  const preamble = readPreamble(text);
-  const serial = options.monitorSerial ?? preamble.serial_number;
-  if (!serial) {
-    throw new ValidationError('the file does not say which monitor wrote it', [
-      { path: 'serial_number', message: 'no serial number in the preamble', kind: 'missing' },
+/**
+ * The three readers differ in four things: where the header line is, what the
+ * columns are called, whether the numbers are metric, and how a channel that did
+ * not trigger is written. Everything else was copied between them, so it is one
+ * function now with those four as a description.
+ */
+const FORMATS = {
+  instantel: {
+    label: 'Minimate style, metric, preamble above the header',
+    findHeader: (rows) => rows.findIndex((row) => normaliseHeader(row[0] ?? '') === 'date_time'),
+    serialFrom: (preamble) => preamble.serial_number,
+    timeColumn: 'date_time',
+    columns: {
+      longitudinal: ['long', 'long_freq'],
+      transverse: ['tran', 'tran_freq'],
+      vertical: ['vert', 'vert_freq'],
+      airblast: ['air', 'air_freq'],
+    },
+    toMmPerSecond: (value) => value,
+    toDecibels: (value) => value,
+    triggerFrom: (preamble) => readNumber(preamble.trigger_level ?? null),
+  },
+  vibratech: {
+    label: 'imperial, flat file, a dash for a channel that did not trigger',
+    findHeader: () => 0,
+    serialFrom: (_preamble, row) => row.unit,
+    timeColumn: 'timestamp',
+    columns: {
+      longitudinal: ['long', 'long_hz'],
+      transverse: ['tran', 'tran_hz'],
+      vertical: ['vert', 'vert_hz'],
+      airblast: ['air', null],
+    },
+    toMmPerSecond: (value) =>
+      value === null ? null : roundTo(inchesPerSecondToMmPerSecond(value), 4),
+    toDecibels: (value) =>
+      value === null ? null : roundTo(pascalsToDecibels(value * PSI_TO_PASCAL), 2),
+    triggerFrom: (_preamble, row) => {
+      const trigger = readNumber(row.trigger);
+      return trigger === null ? null : roundTo(inchesPerSecondToMmPerSecond(trigger), 4);
+    },
+    distanceFrom: (row) => readNumber(row.distance_ft),
+  },
+  sigma: {
+    label: 'Sigma style, metric, one row per channel folded into one event',
+    findHeader: (rows) => rows.findIndex((row) => normaliseHeader(row[0] ?? '') === 'event_time'),
+    serialFrom: (preamble) => preamble.instrument ?? preamble.unit_id,
+    timeColumn: 'event_time',
+    columns: {
+      // The header normaliser strips the units in brackets, so `Ch1 (mm/s)`
+      // arrives as `ch1` and `Ch1 Hz` as `ch1_hz`.
+      longitudinal: ['ch1', 'ch1_hz'],
+      transverse: ['ch2', 'ch2_hz'],
+      vertical: ['ch3', 'ch3_hz'],
+      airblast: ['ch4', 'ch4_hz'],
+    },
+    toMmPerSecond: (value) => value,
+    toDecibels: (value) => value,
+    triggerFrom: (preamble) => readNumber(preamble.trigger_mm_s ?? null),
+  },
+};
+
+export function parseVendorFile(text, format, options = {}) {
+  const shape = FORMATS[format];
+  if (!shape) {
+    throw new ValidationError(`${format} is not a monitor format`, [
+      { path: 'format', message: `expected one of ${FORMATS_LIST.join(', ')}`, kind: 'enum' },
     ]);
   }
+  const preamble = readPreamble(text);
   const lines = parseCsv(text);
-  const headerIndex = lines.findIndex((row) => normaliseHeader(row[0] ?? '') === 'date_time');
+  const headerIndex = shape.findHeader(lines);
   if (headerIndex < 0) {
     throw new ValidationError('the file has no event table in it', [
-      { path: 'text', message: 'no date and time column found', kind: 'malformed' },
+      { path: 'text', message: 'no time column found', kind: 'malformed' },
     ]);
   }
   const body = text.split(/\r?\n/).slice(headerIndex).join('\n');
   const { records } = parseCsvRecords(body);
+
   return records
-    .filter((row) => (row.date_time ?? '').trim() !== '')
-    .map((row) =>
-      parseRecord({
+    .filter((row) => (row[shape.timeColumn] ?? '').trim() !== '')
+    .map((row) => {
+      const serial = options.monitorSerial ?? shape.serialFrom(preamble, row);
+      if (!serial) {
+        throw new ValidationError('the file does not say which monitor wrote it', [
+          { path: 'monitorSerial', message: 'no serial number', kind: 'missing' },
+        ]);
+      }
+      const channel = (name, required) => {
+        const [peakColumn, frequencyColumn] = shape.columns[name];
+        const peak = readNumber(row[peakColumn], { field: peakColumn, allowBlank: !required });
+        return {
+          peakMmPerSecond: shape.toMmPerSecond(peak) ?? 0,
+          frequencyHz: frequencyColumn ? readNumber(row[frequencyColumn]) : null,
+        };
+      };
+      const [airColumn, airFrequency] = shape.columns.airblast;
+      const air = readNumber(row[airColumn]);
+      return parseRecord({
         monitorSerial: serial,
         receptorId: options.receptorId ?? null,
-        triggeredAt: toInstant(row.date_time),
-        distanceM: options.distanceM ?? null,
-        longitudinal: {
-          peakMmPerSecond: readNumber(row.long, { field: 'long', allowBlank: false }),
-          frequencyHz: readNumber(row.long_freq),
-        },
-        transverse: {
-          peakMmPerSecond: readNumber(row.tran, { field: 'tran', allowBlank: false }),
-          frequencyHz: readNumber(row.tran_freq),
-        },
-        vertical: {
-          peakMmPerSecond: readNumber(row.vert, { field: 'vert', allowBlank: false }),
-          frequencyHz: readNumber(row.vert_freq),
-        },
-        airblastDb: readNumber(row.air),
-        airblastFrequencyHz: readNumber(row.air_freq),
-        triggerLevelMmPerSecond: readNumber(preamble.trigger_level ?? null),
-      }),
-    );
-}
-
-export function parseVibraTech(text, options = {}) {
-  const { records } = parseCsvRecords(text);
-  return records
-    .filter((row) => (row.event ?? row.timestamp ?? '').trim() !== '')
-    .map((row) => {
-      const airblastPsi = readNumber(row.air);
-      return parseRecord({
-        monitorSerial: options.monitorSerial ?? row.unit ?? 'unknown',
-        receptorId: options.receptorId ?? null,
-        triggeredAt: toInstant(row.timestamp ?? row.event),
-        distanceM: options.distanceM ?? readNumber(row.distance_ft),
-        longitudinal: {
-          peakMmPerSecond: toMm(readNumber(row.long, { field: 'long', allowBlank: false })),
-          frequencyHz: readNumber(row.long_hz),
-        },
-        transverse: {
-          peakMmPerSecond: toMm(readNumber(row.tran, { field: 'tran', allowBlank: false })),
-          frequencyHz: readNumber(row.tran_hz),
-        },
-        vertical: {
-          peakMmPerSecond: toMm(readNumber(row.vert, { field: 'vert', allowBlank: false })),
-          frequencyHz: readNumber(row.vert_hz),
-        },
-        airblastDb:
-          airblastPsi === null ? null : roundTo(pascalsToDecibels(airblastPsi * PSI_TO_PASCAL), 2),
-        triggerLevelMmPerSecond:
-          readNumber(row.trigger) === null ? null : toMm(readNumber(row.trigger)),
+        triggeredAt: toInstant(row[shape.timeColumn]),
+        distanceM: options.distanceM ?? (shape.distanceFrom ? shape.distanceFrom(row) : null),
+        longitudinal: channel('longitudinal', true),
+        transverse: channel('transverse', true),
+        vertical: channel('vertical', true),
+        airblastDb: shape.toDecibels(air),
+        airblastFrequencyHz: airFrequency ? readNumber(row[airFrequency]) : null,
+        triggerLevelMmPerSecond: shape.triggerFrom(preamble, row),
       });
     });
 }
 
-export function importRecords(text, options = {}) {
-  const format = options.format ?? detectFormat(text);
-  if (!FORMATS.includes(format)) {
-    throw new ValidationError(`${format} is not a monitor format`, [
-      { path: 'format', message: `expected one of ${FORMATS.join(', ')}`, kind: 'enum' },
-    ]);
-  }
-  const records =
-    format === 'instantel' ? parseInstantel(text, options) : parseVibraTech(text, options);
-  return { format, records, count: records.length };
+export function parseInstantel(text, options = {}) {
+  return parseVendorFile(text, 'instantel', options);
 }
 
-function toMm(inchesPerSecond) {
-  return inchesPerSecond === null
-    ? null
-    : roundTo(inchesPerSecondToMmPerSecond(inchesPerSecond), 4);
+export function parseVibraTech(text, options = {}) {
+  return parseVendorFile(text, 'vibratech', options);
+}
+
+export function parseSigma(text, options = {}) {
+  return parseVendorFile(text, 'sigma', options);
+}
+
+export function importRecords(text, options = {}) {
+  const format = options.format ?? detectFormat(text);
+  const records = parseVendorFile(text, format, options);
+  return { format, records, count: records.length };
 }
 
 function toInstant(value) {
@@ -154,3 +197,6 @@ function toInstant(value) {
 }
 
 export const conversions = { PSI_TO_PASCAL, poundsToKg };
+export const formatLabels = Object.fromEntries(
+  Object.entries(FORMATS).map(([name, shape]) => [name, shape.label]),
+);

@@ -28,6 +28,16 @@ const vibraTechFile = [
   '',
 ].join('\n');
 
+const sigmaFile = [
+  'Sigma Vibration Monitor',
+  'Instrument: SG-2201',
+  'Trigger mm/s: 0.4',
+  '',
+  'Event Time,Ch1 (mm/s),Ch1 Hz,Ch2 (mm/s),Ch2 Hz,Ch3 (mm/s),Ch3 Hz,Ch4 (dB),Ch4 Hz',
+  '2026-05-18 13:04:11,2.40,18.0,3.10,14.0,1.90,26.0,110.2,11.0',
+  '',
+].join('\n');
+
 describe('detectFormat', () => {
   it('knows the first make by its preamble', () => {
     expect(detectFormat(instantelFile)).toBe('instantel');
@@ -41,8 +51,12 @@ describe('detectFormat', () => {
     expect(() => detectFormat('a,b\n1,2\n')).toThrow(ValidationError);
   });
 
-  it('names both formats it reads', () => {
-    expect(FORMATS).toEqual(['instantel', 'vibratech']);
+  it('names every format it reads', () => {
+    expect(FORMATS).toEqual(['instantel', 'vibratech', 'sigma']);
+  });
+
+  it('knows the third make by its channel columns', () => {
+    expect(detectFormat(sigmaFile)).toBe('sigma');
   });
 });
 
@@ -133,12 +147,24 @@ describe('importRecords', () => {
   });
 
   it('refuses a format it has no reader for', () => {
-    expect(() => importRecords(instantelFile, { format: 'sigma' })).toThrow(ValidationError);
+    expect(() => importRecords(instantelFile, { format: 'seismodyne' })).toThrow(ValidationError);
   });
 
-  it('gives both makes back in the same shape', () => {
-    const first = importRecords(instantelFile).records[0];
-    const second = importRecords(vibraTechFile).records[0];
-    expect(Object.keys(first).sort()).toEqual(Object.keys(second).sort());
+  it('reads the third make into the same shape as the other two', () => {
+    const result = importRecords(sigmaFile, { receptorId: 'rec_1', distanceM: 300 });
+    expect(result.format).toBe('sigma');
+    expect(result.records[0].monitorSerial).toBe('SG-2201');
+    expect(result.records[0].peakMmPerSecond).toBe(3.1);
+    expect(result.records[0].peakComponent).toBe('transverse');
+    expect(result.records[0].airblastDb).toBe(110.2);
+    expect(result.records[0].triggerLevelMmPerSecond).toBe(0.4);
+  });
+
+  it('gives every make back in the same shape', () => {
+    const shapes = [instantelFile, vibraTechFile, sigmaFile].map((file) =>
+      Object.keys(importRecords(file).records[0]).sort(),
+    );
+    expect(shapes[1]).toEqual(shapes[0]);
+    expect(shapes[2]).toEqual(shapes[0]);
   });
 });
