@@ -158,3 +158,38 @@ describe('security headers', () => {
     expect(response.headers['x-frame-options']).toBeDefined();
   });
 });
+
+describe('the framework own refusals', () => {
+  it('keeps the status of a body that is too large', () => {
+    const error = normalise({ statusCode: 413, code: 'FST_ERR_CTP_BODY_TOO_LARGE' });
+    expect(error.status).toBe(413);
+    expect(error.code).toBe('body_too_large');
+    expect(error.message).toContain('larger than this route accepts');
+  });
+
+  it('keeps the status of json that does not parse', () => {
+    const error = normalise({ statusCode: 400, code: 'FST_ERR_CTP_INVALID_JSON_BODY' });
+    expect(error.status).toBe(400);
+    expect(error.code).toBe('malformed_json');
+  });
+
+  it('keeps the status of a content type nobody serves', () => {
+    expect(normalise({ statusCode: 415, code: 'FST_ERR_CTP_INVALID_MEDIA_TYPE' }).status).toBe(415);
+  });
+
+  it('gives an unrecognised client error a plain message rather than its own', () => {
+    const error = normalise({
+      statusCode: 428,
+      code: 'FST_SOMETHING',
+      message: 'internal detail here',
+    });
+    expect(error.status).toBe(428);
+    expect(error.message).not.toContain('internal detail');
+  });
+
+  it('leaves a server side error alone so it renders as a five hundred', () => {
+    const error = new Error('the disk filled up');
+    error.statusCode = 503;
+    expect(normalise(error)).toBe(error);
+  });
+});

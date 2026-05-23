@@ -10,7 +10,21 @@
  * somebody on the phone be matched to a line in the log.
  */
 
-import { isAppError, toProblem, ValidationError } from '../../lib/errors.js';
+import { isAppError, toProblem, ValidationError, AppError } from '../../lib/errors.js';
+
+/** What each of fastify's own refusals means, in words a caller can act on. */
+const FRAMEWORK_MESSAGES = Object.freeze({
+  FST_ERR_CTP_BODY_TOO_LARGE: 'the request body is larger than this route accepts',
+  FST_ERR_CTP_INVALID_MEDIA_TYPE: 'that content type is not served here',
+  FST_ERR_CTP_INVALID_JSON_BODY: 'the request body is not valid json',
+  FST_ERR_VALIDATION: 'the request did not validate',
+});
+
+const FRAMEWORK_CODES = Object.freeze({
+  FST_ERR_CTP_BODY_TOO_LARGE: 'body_too_large',
+  FST_ERR_CTP_INVALID_MEDIA_TYPE: 'unsupported_media_type',
+  FST_ERR_CTP_INVALID_JSON_BODY: 'malformed_json',
+});
 
 export function errorHandler(logger) {
   return function handleError(error, request, reply) {
@@ -58,6 +72,16 @@ export function normalise(error) {
     return new ValidationError('there is nothing at that path', [
       { path: 'url', message: 'unknown route', kind: 'missing' },
     ]);
+  }
+  // Fastify raises its own errors for a body that is too large, one that does
+  // not parse and a content type nobody serves. They carry a status and dropping
+  // it turned every one of them into a five hundred, which reads to a caller as
+  // the server being broken rather than the request being wrong.
+  if (typeof error?.statusCode === 'number' && error.statusCode >= 400 && error.statusCode < 500) {
+    return new AppError(FRAMEWORK_MESSAGES[error.code] ?? 'the request could not be read', {
+      code: FRAMEWORK_CODES[error.code] ?? 'bad_request',
+      status: error.statusCode,
+    });
   }
   return error;
 }
