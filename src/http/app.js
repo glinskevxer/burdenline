@@ -23,6 +23,7 @@ import { productionRoutes } from './routes/production.js';
 import { siteRuleRoutes } from './routes/site-rules.js';
 import { rigRoutes } from './routes/rigs.js';
 import { orderRoutes } from './routes/orders.js';
+import { productivityRoutes } from './routes/productivity.js';
 import { registerDescribe } from './plugins/describe.js';
 import { registerIdempotency } from './plugins/idempotency.js';
 
@@ -45,6 +46,7 @@ export async function buildApp(options) {
   siteRuleRoutes(app);
   rigRoutes(app);
   orderRoutes(app);
+  productivityRoutes(app);
   reportRoutes(app);
   return app;
 }

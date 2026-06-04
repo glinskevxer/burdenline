@@ -1,6 +1,6 @@
 {
   "service": "burdenline",
-  "routeCount": 116,
+  "routeCount": 119,
   "routes": [
     {
       "method": "GET",
@@ -1984,6 +1984,90 @@
         "allowsUnknown": false
       },
       "query": null
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/productivity",
+      "body": null,
+      "query": {
+        "required": [
+          "from",
+          "to"
+        ],
+        "fields": [
+          {
+            "name": "from",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "to",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "allowsUnknown": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/productivity/rigs",
+      "body": null,
+      "query": {
+        "required": [
+          "from",
+          "to"
+        ],
+        "fields": [
+          {
+            "name": "from",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "to",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "allowsUnknown": true
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/sites/:siteId/productivity/trend",
+      "body": null,
+      "query": {
+        "required": [
+          "from",
+          "previousFrom",
+          "previousTo",
+          "to"
+        ],
+        "fields": [
+          {
+            "name": "from",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "previousFrom",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "previousTo",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "to",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "allowsUnknown": true
+      }
     },
     {
       "method": "GET",
