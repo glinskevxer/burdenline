@@ -16,14 +16,13 @@ import { roundTo } from '../lib/units.js';
 import { ValidationError } from '../lib/errors.js';
 import { listRigs, rigProductivity } from '../db/repositories/rigs.js';
 import { listBlasts } from '../db/repositories/blasts.js';
-import { listHoles } from '../db/repositories/patterns.js';
 import {
   listDigRecords,
   listSurveys,
   secondaryBreakingHours,
 } from '../db/repositories/production.js';
 import { preferredSurvey, digRate } from '../domain/production/survey.js';
-import { ledgerForBlast } from '../db/repositories/explosives.js';
+import { metresDrilled, totalExplosiveKg } from '../db/repositories/blast-facts.js';
 
 export function createProductivityService({ db, clock }) {
   function period({ siteId, from, to }) {
@@ -40,21 +39,8 @@ export function createProductivityService({ db, clock }) {
       const surveys = listSurveys(db, blast.id);
       const survey = preferredSurvey(surveys);
       const digging = digRate(listDigRecords(db, blast.id));
-      const metres = blast.patternId
-        ? roundTo(
-            listHoles(db, blast.patternId, { limit: 1000 }).reduce(
-              (sum, hole) => sum + (hole.drilledDepthM ?? hole.designedDepthM ?? 0),
-              0,
-            ),
-            2,
-          )
-        : 0;
-      const explosiveKg = roundTo(
-        ledgerForBlast(db, blast.id)
-          .filter((line) => line.movement === 'issue')
-          .reduce((sum, line) => sum + Math.abs(line.quantity), 0),
-        2,
-      );
+      const metres = metresDrilled(db, blast.patternId);
+      const explosiveKg = totalExplosiveKg(db, blast.id);
       const tonnes = survey?.tonnes ?? (blast.volumeM3 ? roundTo(blast.volumeM3 * 2.7, 2) : null);
       return {
         blastId: blast.id,

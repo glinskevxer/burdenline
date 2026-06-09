@@ -18,43 +18,13 @@ import { trend } from '../domain/postblast/inspection.js';
 import { summarise as summariseComplaints } from '../domain/community/complaints.js';
 import { complianceSummary, evaluateAll } from '../domain/monitoring/compliance.js';
 import * as blasts from '../db/repositories/blasts.js';
-import * as patterns from '../db/repositories/patterns.js';
 import * as monitoring from '../db/repositories/monitoring.js';
-import * as explosives from '../db/repositories/explosives.js';
 import * as postblast from '../db/repositories/postblast.js';
 import * as community from '../db/repositories/community.js';
 import * as costing from '../db/repositories/costing.js';
+import { metresDrilled, explosiveUsed } from '../db/repositories/blast-facts.js';
 
 export function createReportingService({ db, clock }) {
-  function consumptionFor(blastId) {
-    const lines = explosives
-      .ledgerForBlast(db, blastId)
-      .filter((line) => line.movement === 'consumption');
-    const byProduct = new Map();
-    for (const line of lines) {
-      const current = byProduct.get(line.productCode) ?? {
-        productCode: line.productCode,
-        quantity: 0,
-        unit: line.unit,
-      };
-      current.quantity = roundTo(current.quantity + Math.abs(line.quantity), 3);
-      byProduct.set(line.productCode, current);
-    }
-    return [...byProduct.values()];
-  }
-
-  function metresDrilledFor(patternId) {
-    if (!patternId) {
-      return 0;
-    }
-    return roundTo(
-      patterns
-        .listHoles(db, patternId)
-        .reduce((sum, hole) => sum + (hole.drilledDepthM ?? hole.designedDepthM ?? 0), 0),
-      2,
-    );
-  }
-
   /** Everything known about one shot. */
   function blastReport({ blastId, labourHours = 0, secondaryBreakingHours = 0 }) {
     const blast = blasts.findBlast(db, blastId);
@@ -62,14 +32,14 @@ export function createReportingService({ db, clock }) {
       throw new NotFoundError('blast', blastId);
     }
     const onDate = (blast.firedAt ?? clock.now()).slice(0, 10);
-    const consumption = consumptionFor(blast.id);
-    const metresDrilled = metresDrilledFor(blast.patternId);
+    const consumption = explosiveUsed(db, blast.id).products;
+    const drilled = metresDrilled(db, blast.patternId);
     const tonnes = blast.volumeM3 ? roundTo(blast.volumeM3 * 2.7, 2) : null;
     const cost = costBlast({
       consumption,
       prices: costing.priceBook(db),
       rates: costing.rateBook(db, blast.siteId),
-      metresDrilled,
+      metresDrilled: drilled,
       labourHours,
       secondaryBreakingHours,
       tonnes,
@@ -87,7 +57,7 @@ export function createReportingService({ db, clock }) {
       misfires: postblast.listMisfires(db, blast.id),
       notifications: community.notificationSummary(db, blast.id),
       consumption,
-      metresDrilled,
+      metresDrilled: drilled,
       cost,
       monitoring: { records: results, summary: complianceSummary(results) },
       diggable: postblast.diggability(db, blast.id).diggable,
@@ -108,8 +78,8 @@ export function createReportingService({ db, clock }) {
       fired.reduce((sum, blast) => sum + (blast.totalChargeKg ?? 0), 0),
       2,
     );
-    const metresDrilled = roundTo(
-      fired.reduce((sum, blast) => sum + metresDrilledFor(blast.patternId), 0),
+    const drilledMetres = roundTo(
+      fired.reduce((sum, blast) => sum + metresDrilled(db, blast.patternId), 0),
       2,
     );
     const costs = fired.map((blast) => blastReport({ blastId: blast.id }).cost);
@@ -143,9 +113,9 @@ export function createReportingService({ db, clock }) {
       volumeM3,
       tonnes,
       chargeKg,
-      metresDrilled,
+      metresDrilled: drilledMetres,
       powderFactorKgM3: volumeM3 > 0 ? roundTo(chargeKg / volumeM3, 4) : null,
-      drillingMetresPerTonne: tonnes > 0 ? roundTo(metresDrilled / tonnes, 5) : null,
+      drillingMetresPerTonne: tonnes > 0 ? roundTo(drilledMetres / tonnes, 5) : null,
       cost: {
         total: totalCost,
         perTonne: tonnes > 0 ? roundTo(totalCost / tonnes, 4) : null,
