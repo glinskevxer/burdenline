@@ -76,6 +76,21 @@ jobs:
       - run: node scripts/export-check.js
       - run: node scripts/export-api.js --check
 
+  release-check:
+    name: release check
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run release-check
+
   image:
     name: build the image
     runs-on: ubuntu-latest
