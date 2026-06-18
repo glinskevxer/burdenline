@@ -9,6 +9,7 @@ import { databaseCommands } from './database.js';
 import { reportingCommands } from './reporting.js';
 import { jobCommands } from './jobs.js';
 import { supplyCommands } from './supply.js';
+import { accessCommands } from './access.js';
 
 export function buildCommands(dependencies) {
   return {
@@ -16,6 +17,7 @@ export function buildCommands(dependencies) {
     ...reportingCommands(dependencies),
     ...jobCommands(dependencies),
     ...supplyCommands(dependencies),
+    ...accessCommands(dependencies),
   };
 }
 
