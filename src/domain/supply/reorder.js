@@ -86,9 +86,13 @@ export function assessStock({
   const daysOfCover = profile.perDay > 0 ? roundTo(available / profile.perDay, 1) : null;
   const shortfall = roundTo(Math.max(point.coverTo - available, 0), 2);
   let action = 'none';
-  if (available <= point.duringLeadTime) {
+  // A product nothing has ever been drawn of has no reorder point: its lead time
+  // demand is zero, and reading an empty shelf as urgent puts every product the
+  // site does not use at the top of the ordering screen.
+  const used = profile.perDay > 0 || profile.total > 0;
+  if (used && available <= point.duringLeadTime) {
     action = 'urgent';
-  } else if (available <= point.reorderAt) {
+  } else if (used && available <= point.reorderAt) {
     action = 'order';
   }
   return {

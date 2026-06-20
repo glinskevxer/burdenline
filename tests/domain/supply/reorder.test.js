@@ -154,3 +154,34 @@ describe('reviewStore', () => {
     expect(() => reviewStore({ items: undefined })).toThrow(ValidationError);
   });
 });
+
+describe('a product nothing has ever been drawn of', () => {
+  const nothing = consumptionProfile([]);
+
+  it('is not urgent just because the shelf is empty', () => {
+    const result = assessStock({ productCode: 'BST-400', held: 0, profile: nothing });
+    expect(result.action).toBe('none');
+    expect(result.suggestedQuantity).toBe(0);
+  });
+
+  it('has no days of cover to report', () => {
+    expect(assessStock({ productCode: 'BST-400', held: 0, profile: nothing }).daysOfCover).toBe(
+      null,
+    );
+  });
+
+  it('stays out of the ordering list', () => {
+    const review = reviewStore({
+      items: [
+        { productCode: 'BST-400', held: 0, profile: nothing },
+        { productCode: 'ANFO-80', held: 100, usage },
+      ],
+    });
+    expect(review.toOrder.map((item) => item.productCode)).toEqual(['ANFO-80']);
+  });
+
+  it('starts being counted the moment it is used once', () => {
+    const once = consumptionProfile([{ on: '2026-02-14', quantity: 40 }]);
+    expect(assessStock({ productCode: 'BST-400', held: 0, profile: once }).action).toBe('urgent');
+  });
+});
