@@ -76,10 +76,6 @@ export function isEditable(state) {
   return ['draft', 'designed', 'submitted'].includes(state);
 }
 
-export function requiresApproval(state) {
-  return ['draft', 'designed', 'submitted'].includes(state);
-}
-
 /**
  * Apply a transition. The context carries whatever the transition requires, and
  * a missing field is refused here rather than leaving a shot recorded as fired

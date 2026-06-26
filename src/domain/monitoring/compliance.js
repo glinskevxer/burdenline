@@ -14,7 +14,7 @@
 
 import { roundTo } from '../../lib/units.js';
 import { ValidationError } from '../../lib/errors.js';
-import { curveForReceptor, evaluate, limitAt, lowestLimit } from '../vibration/limits.js';
+import { curveForReceptor, evaluate } from '../vibration/limits.js';
 import { assessAirblast } from '../vibration/airblast.js';
 import { isTriggered } from './records.js';
 
@@ -160,5 +160,3 @@ function worst(...severities) {
     SEVERITIES.indexOf(candidate) > SEVERITIES.indexOf(highest) ? candidate : highest,
   );
 }
-
-export const limitHelpers = { limitAt, lowestLimit };

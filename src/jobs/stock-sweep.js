@@ -10,7 +10,7 @@
 
 import { defineJob } from './framework.js';
 import { listWhere } from '../db/repository.js';
-import { stockFor, listBatches, listProducts, getMagazine } from '../db/repositories/explosives.js';
+import { stockFor, listBatches, listProducts } from '../db/repositories/explosives.js';
 import { batchStatus } from '../domain/magazine/batches.js';
 
 export function stockSweepJob({ warnWithinDays = 30 } = {}) {
@@ -130,8 +130,4 @@ export function sleepingHolesJob() {
       };
     },
   });
-}
-
-export function magazineNames(db, ids) {
-  return ids.map((id) => getMagazine(db, id).name);
 }

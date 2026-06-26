@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 import { rowsToObjects } from '../../db/repository.js';
 import { grantsFor, ROLES } from '../../http/plugins/auth.js';
 import { heldBy, mayFire } from '../../domain/people/competency.js';
-import { EXIT, UsageError, required } from '../framework.js';
+import { EXIT, required } from '../framework.js';
 
 export function accessCommands({ db, clock }) {
   function personBy(idOrName) {
@@ -121,11 +121,4 @@ function certificates(db) {
     endorsements: row.endorsements ? String(row.endorsements).split(',').filter(Boolean) : [],
     suspended: row.suspended === 1,
   }));
-}
-
-export function assertPersonNamed(options) {
-  if (!options.person) {
-    throw new UsageError('name the person with --person');
-  }
-  return options.person;
 }

@@ -164,4 +164,3 @@ function encodeBase32(value, length) {
 }
 
 export const idAlphabet = ALPHABET;
-export const knownPrefixes = KNOWN_PREFIXES;

@@ -18,7 +18,6 @@ import {
   createRecord,
   updateRecord,
 } from '../repository.js';
-import { newId } from '../../lib/ids.js';
 import { roundTo } from '../../lib/units.js';
 import { createBatch, recordMovement, findProductByCode, listProducts } from './explosives.js';
 import { consumptionProfile, reviewStore } from '../../domain/supply/reorder.js';
@@ -291,8 +290,4 @@ function usageByProduct(db, siteId, from) {
     byProduct[row.product_code].push({ on: row.on_date, quantity: roundTo(row.quantity, 3) });
   }
   return byProduct;
-}
-
-export function orderIdFor(reference) {
-  return newId('rep', { now: () => Date.parse(reference) || Date.now() });
 }

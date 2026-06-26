@@ -12,7 +12,6 @@
 import { ValidationError } from '../../lib/errors.js';
 import { parseCsvRecords, readNumber } from '../../lib/csv.js';
 import { roundTo } from '../../lib/units.js';
-import { HOLE_CONDITIONS } from '../geometry/hole.js';
 
 const CONDITION_WORDS = {
   dry: 'dry',
@@ -169,5 +168,3 @@ function nullableRounded(value) {
   const number = readNumber(value);
   return number === null ? null : roundTo(number, 2);
 }
-
-export const conditionVocabulary = HOLE_CONDITIONS;

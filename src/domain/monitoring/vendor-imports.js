@@ -173,10 +173,6 @@ export function parseVibraTech(text, options = {}) {
   return parseVendorFile(text, 'vibratech', options);
 }
 
-export function parseSigma(text, options = {}) {
-  return parseVendorFile(text, 'sigma', options);
-}
-
 export function importRecords(text, options = {}) {
   const format = options.format ?? detectFormat(text);
   const records = parseVendorFile(text, format, options);
@@ -197,6 +193,3 @@ function toInstant(value) {
 }
 
 export const conversions = { PSI_TO_PASCAL, poundsToKg };
-export const formatLabels = Object.fromEntries(
-  Object.entries(FORMATS).map(([name, shape]) => [name, shape.label]),
-);

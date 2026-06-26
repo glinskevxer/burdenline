@@ -164,5 +164,3 @@ function assertFace(facePoints) {
     ]);
   }
 }
-
-export const profileDefaults = { DEFAULT_BAND_M, DEFAULT_STEP_M };

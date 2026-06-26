@@ -88,10 +88,3 @@ export async function buildServer({ config, db, clock, services = {}, logger } =
 
   return app;
 }
-
-export async function startServer(options) {
-  const app = await buildServer(options);
-  const { host, port } = options.config.http;
-  await app.listen({ host, port });
-  return app;
-}
