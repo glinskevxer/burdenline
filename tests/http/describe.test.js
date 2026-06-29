@@ -93,3 +93,34 @@ describe('GET /describe', () => {
     expect(response.statusCode).toBe(200);
   });
 });
+
+describe('what the description is for', () => {
+  it('gives a caller enough to write a request from', async () => {
+    const routes = (await harness.app.inject({ method: 'GET', url: '/describe' })).json().routes;
+    const issue = routes.find((route) => route.path === '/blasts/:blastId/issues');
+    expect(issue.method).toBe('POST');
+    expect(issue.body.required).toContain('magazineId');
+    expect(issue.body.fields.map((field) => field.name)).toContain('items');
+  });
+
+  it('says which query parameters a report needs', async () => {
+    const routes = (await harness.app.inject({ method: 'GET', url: '/describe' })).json().routes;
+    const report = routes.find((route) => route.path === '/sites/:siteId/report');
+    expect(report.query.required).toEqual(['from', 'to']);
+  });
+
+  it('shows the values of a field that only takes a few', async () => {
+    const routes = (await harness.app.inject({ method: 'GET', url: '/describe' })).json().routes;
+    const survey = routes.find(
+      (route) => route.path === '/blasts/:blastId/surveys' && route.method === 'POST',
+    );
+    const method = survey.body.fields.find((field) => field.name === 'method');
+    expect(method.values).toContain('laser_scan');
+  });
+
+  it('says a route takes no unknown fields, which is the api contract', async () => {
+    const routes = (await harness.app.inject({ method: 'GET', url: '/describe' })).json().routes;
+    const writing = routes.filter((route) => route.method === 'POST' && route.body);
+    expect(writing.every((route) => route.body.allowsUnknown === false)).toBe(true);
+  });
+});

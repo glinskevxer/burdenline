@@ -16,6 +16,15 @@ import { errorHandler, notFoundHandler } from './plugins/errors.js';
 import { createLogger } from '../lib/logger.js';
 import { describeConfig } from '../config/env.js';
 
+/** Anything that reads the database on a status route must not take it down. */
+function safely(work) {
+  try {
+    return work();
+  } catch {
+    return null;
+  }
+}
+
 export async function buildServer({ config, db, clock, services = {}, logger } = {}) {
   const log = logger ?? createLogger(config);
   const app = Fastify({
@@ -63,6 +72,8 @@ export async function buildServer({ config, db, clock, services = {}, logger } =
     );
   });
 
+  const startedAt = clock?.now?.() ?? new Date().toISOString();
+
   app.get('/health', async () => ({ status: 'ok' }));
 
   app.get('/ready', async (request, reply) => {
@@ -81,10 +92,28 @@ export async function buildServer({ config, db, clock, services = {}, logger } =
     }
   });
 
-  app.get('/about', async () => ({
-    service: 'burdenline',
-    config: describeConfig(config),
-  }));
+  /**
+   * What this build is and what state it is in. Read by whoever is standing in
+   * front of a machine in a quarry office trying to work out whether it is the
+   * one that was deployed, and by the deploy check afterwards.
+   */
+  app.get('/about', async () => {
+    const schema = safely(() => db.prepare('SELECT max(id) AS id FROM schema_migration').get()?.id);
+    const counts = {};
+    for (const table of ['site', 'blast', 'monitor_record', 'magazine_ledger', 'complaint']) {
+      counts[table] =
+        safely(() => db.prepare(`SELECT count(*) AS n FROM ${table}`).get().n) ?? null;
+    }
+    return {
+      service: 'burdenline',
+      startedAt,
+      uptimeSeconds: Math.round((Date.now() - Date.parse(startedAt)) / 1000),
+      node: process.version,
+      schemaVersion: schema ?? null,
+      counts,
+      config: describeConfig(config),
+    };
+  });
 
   return app;
 }

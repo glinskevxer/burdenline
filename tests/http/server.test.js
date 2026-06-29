@@ -193,3 +193,38 @@ describe('the framework own refusals', () => {
     expect(normalise(error)).toBe(error);
   });
 });
+
+describe('GET /about', () => {
+  it('says what build this is and what schema it expects', async () => {
+    const response = await app.inject({ method: 'GET', url: '/about' });
+    const body = response.json();
+    expect(body.service).toBe('burdenline');
+    expect(body.node).toBe(process.version);
+    expect(body.startedAt).toBe('2025-09-10T09:00:00.000Z');
+    expect(typeof body.uptimeSeconds).toBe('number');
+  });
+
+  it('counts what is in the database', async () => {
+    const response = await app.inject({ method: 'GET', url: '/about' });
+    expect(response.json().counts).toHaveProperty('site');
+    expect(response.json().counts).toHaveProperty('blast');
+  });
+
+  it('answers even when the database has nothing in it to count', async () => {
+    const response = await app.inject({ method: 'GET', url: '/about' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().schemaVersion).toBe(null);
+  });
+
+  it('answers rather than falling over when the database has gone', async () => {
+    closeDatabase(db);
+    const response = await app.inject({ method: 'GET', url: '/about' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().counts.site).toBe(null);
+  });
+
+  it('still says nothing about the signing secret', async () => {
+    const response = await app.inject({ method: 'GET', url: '/about' });
+    expect(response.payload).not.toContain('aaaa');
+  });
+});

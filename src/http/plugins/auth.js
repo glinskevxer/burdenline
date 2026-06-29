@@ -114,9 +114,10 @@ export function authRoutes(app) {
         body: {
           type: 'object',
           required: ['personId'],
+          additionalProperties: false,
           properties: {
-            personId: { type: 'string', minLength: 1 },
-            siteId: { type: 'string' },
+            personId: { type: 'string', minLength: 1, maxLength: 40 },
+            siteId: { type: 'string', maxLength: 40 },
           },
         },
       },

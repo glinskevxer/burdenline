@@ -33,7 +33,7 @@
             "required": false
           }
         ],
-        "allowsUnknown": true
+        "allowsUnknown": false
       },
       "query": null
     },
@@ -1282,17 +1282,101 @@
             "required": true
           },
           {
+            "name": "compatibilityGroup",
+            "type": "string",
+            "required": false,
+            "values": [
+              "B",
+              "D",
+              "S"
+            ]
+          },
+          {
+            "name": "densityKgM3",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "hazardDivision",
+            "type": "string",
+            "required": false,
+            "values": [
+              "1.1D",
+              "1.1B",
+              "1.4B",
+              "1.4S",
+              "1.5D"
+            ]
+          },
+          {
+            "name": "isExplosive",
+            "type": "boolean",
+            "required": false
+          },
+          {
             "name": "kind",
             "type": "string",
-            "required": true
+            "required": true,
+            "values": [
+              "bulk_anfo",
+              "bulk_emulsion",
+              "bulk_blend",
+              "packaged_emulsion",
+              "cartridge",
+              "booster",
+              "detonator",
+              "detonating_cord",
+              "shock_tube"
+            ]
+          },
+          {
+            "name": "minimumDiameterMm",
+            "type": "number",
+            "required": false
           },
           {
             "name": "name",
             "type": "string",
             "required": true
+          },
+          {
+            "name": "relativeWeightStrength",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "sleepTimeHours",
+            "type": "integer",
+            "required": false
+          },
+          {
+            "name": "unitMassKg",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "unNumber",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "velocityOfDetonationMs",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "waterResistance",
+            "type": "string",
+            "required": false,
+            "values": [
+              "none",
+              "limited",
+              "good",
+              "excellent"
+            ]
           }
         ],
-        "allowsUnknown": true
+        "allowsUnknown": false
       },
       "query": null
     },
