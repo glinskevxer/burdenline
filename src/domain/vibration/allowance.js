@@ -76,11 +76,11 @@ export function allowanceForReceptor({ fit, receptor, distanceM, frequencyHz, sa
 }
 
 /** The receptor that pins the shot, which is not always the closest one. */
-export function bindingReceptor(allowances) {
-  if (allowances.length === 0) {
+export function bindingReceptor(worked) {
+  if (worked.length === 0) {
     return null;
   }
-  return allowances.reduce((tightest, candidate) =>
+  return worked.reduce((tightest, candidate) =>
     candidate.allowanceKg < tightest.allowanceKg ? candidate : tightest,
   );
 }

@@ -65,25 +65,25 @@ export function distanceToPattern(receptor, holes) {
     ]);
   }
   const target = point(receptor.easting, receptor.northing, receptor.level ?? 0);
-  let nearest = { distanceM: Infinity, holeNumber: null };
+  let closest = { distanceM: Infinity, holeNumber: null };
   for (const hole of holes) {
     const collar = point(hole.easting, hole.northing, hole.collarLevelM ?? 0);
     const distance = planDistance(target, collar);
-    if (distance < nearest.distanceM) {
-      nearest = { distanceM: roundTo(distance, 2), holeNumber: hole.holeNumber };
+    if (distance < closest.distanceM) {
+      closest = { distanceM: roundTo(distance, 2), holeNumber: hole.holeNumber };
     }
   }
-  return nearest;
+  return closest;
 }
 
 export function withDistances(receptors, holes) {
   return receptors
     .map((receptor) => {
-      const nearest = distanceToPattern(receptor, holes);
+      const found = distanceToPattern(receptor, holes);
       return {
         receptor,
-        distanceM: nearest.distanceM,
-        nearestHoleNumber: nearest.holeNumber,
+        distanceM: found.distanceM,
+        nearestHoleNumber: found.holeNumber,
       };
     })
     .sort((a, b) => a.distanceM - b.distanceM);

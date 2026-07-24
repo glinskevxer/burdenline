@@ -200,7 +200,7 @@ describe('highestReading', () => {
 });
 
 describe('the corners of the compliance judgement', () => {
-  const cottage = parseReceptor({
+  const lodge = parseReceptor({
     id: 'rec_9',
     name: 'Gate lodge',
     structureClass: 'dwelling',
@@ -221,7 +221,7 @@ describe('the corners of the compliance judgement', () => {
   }
 
   it('reads a record with no airblast channel as ground only', () => {
-    const result = evaluateRecord(reading(), cottage);
+    const result = evaluateRecord(reading(), lodge);
     expect(result.channels).toEqual([]);
     expect(result.airSeverity).toBe('none');
   });
@@ -240,7 +240,7 @@ describe('the corners of the compliance judgement', () => {
 
   it('counts a repeat only once per receptor', () => {
     const loud = () =>
-      evaluateRecord(reading({ transverse: { peakMmPerSecond: 40, frequencyHz: 20 } }), cottage);
+      evaluateRecord(reading({ transverse: { peakMmPerSecond: 40, frequencyHz: 20 } }), lodge);
     const repeats = repeatExceedances([loud(), loud(), loud()]);
     expect(repeats).toHaveLength(1);
     expect(repeats[0].count).toBe(2);

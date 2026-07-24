@@ -37,26 +37,26 @@ export function createDesignService({ db, clock, logger }) {
   const context = { clock };
 
   /** Lay a pattern out on a bench and write it with its holes. */
-  function layOut({ benchId, reference, design }) {
+  function layOut({ benchId, reference, design: shape }) {
     const bench = sites.getBench(db, benchId);
-    const benchHeightM = design.benchHeightM ?? sites.benchHeightM(bench);
-    const laid = layoutPattern({ ...design, benchHeightM });
+    const benchHeightM = shape.benchHeightM ?? sites.benchHeightM(bench);
+    const laid = layoutPattern({ ...shape, benchHeightM });
     const pattern = patterns.createPattern(
       db,
       {
         benchId,
         reference,
-        layout: design.layout ?? 'staggered',
-        holeDiameterMm: design.diameterMm,
-        nominalBurdenM: design.burdenM,
-        nominalSpacingM: design.spacingM,
-        rowCount: design.rowCount,
-        holesPerRow: design.holesPerRow,
+        layout: shape.layout ?? 'staggered',
+        holeDiameterMm: shape.diameterMm,
+        nominalBurdenM: shape.burdenM,
+        nominalSpacingM: shape.spacingM,
+        rowCount: shape.rowCount,
+        holesPerRow: shape.holesPerRow,
         benchHeightM,
-        subdrillM: design.subdrillM ?? 0,
-        inclinationDeg: design.inclinationDeg ?? 0,
-        bearingDeg: design.faceBearingDeg,
-        designedBy: design.designedBy ?? null,
+        subdrillM: shape.subdrillM ?? 0,
+        inclinationDeg: shape.inclinationDeg ?? 0,
+        bearingDeg: shape.faceBearingDeg,
+        designedBy: shape.designedBy ?? null,
       },
       context,
     );
@@ -65,7 +65,7 @@ export function createDesignService({ db, clock, logger }) {
     return {
       pattern,
       holes: patterns.listHoles(db, pattern.id),
-      summary: summarisePattern({ ...design, benchHeightM }, laid.holes),
+      summary: summarisePattern({ ...shape, benchHeightM }, laid.holes),
     };
   }
 
