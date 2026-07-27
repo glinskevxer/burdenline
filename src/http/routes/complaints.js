@@ -15,6 +15,7 @@ import { matchToBlasts, supportingRecords } from '../../domain/community/complai
 import { buildResponse, renderLetter } from '../../domain/community/response-letter.js';
 import * as sites from '../../db/repositories/sites.js';
 import { curveForReceptor, limitAt, lowestLimit } from '../../domain/vibration/limits.js';
+import { outcomeBody } from '../schemas.js';
 
 const complaintBody = {
   type: 'object',
@@ -37,12 +38,6 @@ const complaintBody = {
     description: { type: 'string', minLength: 5, maxLength: 2000 },
     occurredAt: { type: 'string' },
   },
-};
-
-const outcomeBody = {
-  type: 'object',
-  additionalProperties: false,
-  properties: { outcome: { type: 'string', minLength: 5, maxLength: 1000 } },
 };
 
 export function complaintRoutes(app) {

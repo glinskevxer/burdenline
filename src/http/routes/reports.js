@@ -16,15 +16,7 @@ import * as monitoring from '../../db/repositories/monitoring.js';
 import * as community from '../../db/repositories/community.js';
 import * as postblast from '../../db/repositories/postblast.js';
 import { historyFor, byActor, since } from '../../db/audit.js';
-
-const periodQuery = {
-  type: 'object',
-  required: ['from', 'to'],
-  properties: {
-    from: { type: 'string', minLength: 4 },
-    to: { type: 'string', minLength: 4 },
-  },
-};
+import { periodQuery } from '../schemas.js';
 
 export function reportRoutes(app) {
   const { db, clock, logger } = app.deps;

@@ -7,15 +7,7 @@
  */
 
 import { createProductivityService } from '../../services/productivity.service.js';
-
-const periodQuery = {
-  type: 'object',
-  required: ['from', 'to'],
-  properties: {
-    from: { type: 'string', minLength: 4 },
-    to: { type: 'string', minLength: 4 },
-  },
-};
+import { periodQuery } from '../schemas.js';
 
 export function productivityRoutes(app) {
   const { db, clock } = app.deps;

@@ -8,6 +8,7 @@
  */
 
 import * as production from '../../db/repositories/production.js';
+import { periodQuery } from '../schemas.js';
 
 const surveyBody = {
   type: 'object',
@@ -131,16 +132,7 @@ export function productionRoutes(app) {
 
   app.get(
     '/sites/:siteId/surveys',
-    {
-      preHandler: app.requireGrant('read'),
-      schema: {
-        querystring: {
-          type: 'object',
-          required: ['from', 'to'],
-          properties: { from: { type: 'string' }, to: { type: 'string' } },
-        },
-      },
-    },
+    { preHandler: app.requireGrant('read'), schema: { querystring: periodQuery } },
     async (request) => ({
       surveys: production.surveysInPeriod(db, request.params.siteId, {
         from: request.query.from,

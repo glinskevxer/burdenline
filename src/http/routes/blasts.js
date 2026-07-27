@@ -10,13 +10,7 @@
 import * as blasts from '../../db/repositories/blasts.js';
 import * as sites from '../../db/repositories/sites.js';
 import { actionsFrom, describeState } from '../../domain/firing/lifecycle.js';
-
-const reasonBody = {
-  type: 'object',
-  required: ['reason'],
-  additionalProperties: false,
-  properties: { reason: { type: 'string', minLength: 5, maxLength: 500 } },
-};
+import { reasonBody } from '../schemas.js';
 
 export function blastRoutes(app) {
   const { db, clock } = app.deps;
