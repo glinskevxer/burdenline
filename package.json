@@ -1,6 +1,6 @@
 {
   "name": "burdenline",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Drill and blast planning, explosives accounting and vibration compliance for hard rock quarries",
   "type": "module",
