@@ -37,9 +37,10 @@ describe('health and readiness', () => {
     expect(response.json()).toEqual({ status: 'ok' });
   });
 
-  it('answers ready when the database is open', async () => {
+  it('answers not ready on a database that has had no migrations', async () => {
     const response = await app.inject({ method: 'GET', url: '/ready' });
-    expect(response.json()).toEqual({ status: 'ready', database: 'ok' });
+    expect(response.statusCode).toBe(503);
+    expect(response.json().database).toBe('ok');
   });
 
   it('answers not ready when the database has gone', async () => {
@@ -47,6 +48,7 @@ describe('health and readiness', () => {
     const response = await app.inject({ method: 'GET', url: '/ready' });
     expect(response.statusCode).toBe(503);
     expect(response.json().title).toBe('not ready');
+    expect(response.json().database).toBe('unavailable');
   });
 
   it('describes itself without leaking the signing secret', async () => {
@@ -226,5 +228,37 @@ describe('GET /about', () => {
   it('still says nothing about the signing secret', async () => {
     const response = await app.inject({ method: 'GET', url: '/about' });
     expect(response.payload).not.toContain('aaaa');
+  });
+});
+
+describe('readiness against the schema', () => {
+  it('is not ready on a database with no migrations applied', async () => {
+    const response = await app.inject({ method: 'GET', url: '/ready' });
+    expect(response.statusCode).toBe(503);
+    expect(response.json().detail).toContain('migrations have not been applied');
+    expect(response.json().pendingMigrations).toBeGreaterThan(0);
+  });
+
+  it('is ready once the database is at the schema this build expects', async () => {
+    const migrated = openDatabase({ database: { file: ':memory:' } });
+    const { runMigrations, loadMigrations } = await import('../../src/db/migrate.js');
+    runMigrations(migrated, await loadMigrations());
+    const ready = await buildServer({
+      config,
+      db: migrated,
+      clock: fixedClock('2025-09-10T09:00:00Z'),
+    });
+    const response = await ready.inject({ method: 'GET', url: '/ready' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ status: 'ready', pendingMigrations: 0 });
+    await ready.close();
+    closeDatabase(migrated);
+  });
+
+  it('says the database is unavailable rather than guessing when it has gone', async () => {
+    closeDatabase(db);
+    const response = await app.inject({ method: 'GET', url: '/ready' });
+    expect(response.statusCode).toBe(503);
+    expect(response.json().detail).toContain('not answering');
   });
 });

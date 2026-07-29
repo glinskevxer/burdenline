@@ -15,6 +15,16 @@ import { randomUUID } from 'node:crypto';
 import { errorHandler, notFoundHandler } from './plugins/errors.js';
 import { createLogger } from '../lib/logger.js';
 import { describeConfig } from '../config/env.js';
+import { loadMigrations } from '../db/migrate.js';
+
+/** How many migrations this build has that the database has not had. */
+async function pendingCount(db, schemaVersion) {
+  const migrations = await loadMigrations();
+  if (schemaVersion === null) {
+    return migrations.length;
+  }
+  return migrations.filter((migration) => migration.id > schemaVersion).length;
+}
 
 /** Anything that reads the database on a status route must not take it down. */
 function safely(work) {
@@ -76,20 +86,47 @@ export async function buildServer({ config, db, clock, services = {}, logger } =
 
   app.get('/health', async () => ({ status: 'ok' }));
 
+  /**
+   * Ready means the database answers and the schema is the one this build was
+   * written against. A container that is up on a database a migration behind
+   * will answer requests and write rows into a table shaped differently from
+   * the one the code expects, which is worse than being down.
+   */
   app.get('/ready', async (request, reply) => {
+    let database = 'ok';
+    let schemaVersion = null;
+    let pending = null;
     try {
       db.prepare('SELECT 1 AS ok').get();
-      return { status: 'ready', database: 'ok' };
     } catch (error) {
       log.error({ err: error }, 'readiness check failed');
-      return reply.code(503).send({
-        type: 'https://burdenline.invalid/problems/not_ready',
-        title: 'not ready',
-        status: 503,
-        detail: 'the database is not answering',
-        requestId: request.id,
-      });
+      database = 'unavailable';
     }
+    if (database === 'ok') {
+      // A database that answers but has no migration table has had none applied,
+      // which is a different thing from one that is not answering at all.
+      schemaVersion = safely(
+        () => db.prepare('SELECT max(id) AS id FROM schema_migration').get()?.id,
+      );
+      pending = await pendingCount(db, schemaVersion ?? null);
+    }
+    const ready = database === 'ok' && pending === 0;
+    if (ready) {
+      return { status: 'ready', database, schemaVersion, pendingMigrations: pending };
+    }
+    return reply.code(503).send({
+      type: 'https://burdenline.invalid/problems/not_ready',
+      title: 'not ready',
+      status: 503,
+      detail:
+        database === 'ok'
+          ? `${pending} migrations have not been applied to this database`
+          : 'the database is not answering',
+      database,
+      schemaVersion,
+      pendingMigrations: pending,
+      requestId: request.id,
+    });
   });
 
   /**
