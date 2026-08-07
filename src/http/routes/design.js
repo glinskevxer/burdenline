@@ -9,10 +9,9 @@
  */
 
 import { createDesignService } from '../../services/design.service.js';
-import * as explosives from '../../db/repositories/explosives.js';
 import * as patterns from '../../db/repositories/patterns.js';
 import * as blasts from '../../db/repositories/blasts.js';
-import { parseProduct } from '../../domain/charging/products.js';
+import { loadableCatalogue } from '../../services/catalogue.service.js';
 import { predict } from '../../domain/postblast/fragmentation.js';
 import { ValidationError } from '../../lib/errors.js';
 import { createComparisonService } from '../../services/comparison.service.js';
@@ -25,28 +24,6 @@ export function designRoutes(app) {
   const context = { clock };
   const service = createDesignService({ db, clock, logger });
   const comparison = createComparisonService({ clock });
-
-  /** The catalogue the designer may load from, read out of the database. */
-  function catalogueFor() {
-    return explosives
-      .listProducts(db)
-      .filter((product) =>
-        ['bulk_anfo', 'bulk_emulsion', 'bulk_blend', 'packaged_emulsion'].includes(product.kind),
-      )
-      .map((product) =>
-        parseProduct({
-          code: product.code,
-          name: product.name,
-          kind: product.kind,
-          densityKgM3: product.densityKgM3,
-          relativeWeightStrength: product.relativeWeightStrength,
-          velocityOfDetonationMs: product.velocityOfDetonationMs,
-          waterResistance: product.waterResistance,
-          minimumDiameterMm: product.minimumDiameterMm,
-          sleepTimeHours: product.sleepTimeHours,
-        }),
-      );
-  }
 
   app.post(
     '/patterns/:patternId/charge-plan',
@@ -65,7 +42,7 @@ export function designRoutes(app) {
       },
     },
     async (request) => {
-      const catalogue = catalogueFor();
+      const catalogue = loadableCatalogue(db);
       if (catalogue.length === 0) {
         throw new ValidationError('there is nothing in the product catalogue to load with', [
           { path: 'catalogue', message: 'add a bulk product first', kind: 'missing' },
@@ -113,7 +90,7 @@ export function designRoutes(app) {
     async (request) => {
       const charging = service.planCharges({
         patternId: request.params.patternId,
-        catalogue: catalogueFor(),
+        catalogue: loadableCatalogue(db),
         powderFactorKgM3: request.body.powderFactorKgM3,
         stemmingM: request.body.stemmingM,
       });
@@ -159,7 +136,7 @@ export function designRoutes(app) {
       const result = service.design({
         siteId: request.params.siteId,
         patternId: request.params.patternId,
-        catalogue: catalogueFor(),
+        catalogue: loadableCatalogue(db),
         powderFactorKgM3: request.body.powderFactorKgM3,
         stemmingM: request.body.stemmingM,
         tieIn: request.body.tieIn,
@@ -226,7 +203,7 @@ export function designRoutes(app) {
       return comparison.compare({
         base: request.body.base,
         alternative: request.body.alternative,
-        catalogue: catalogueFor(),
+        catalogue: loadableCatalogue(db),
         powderFactorKgM3: request.body.powderFactorKgM3,
         connectorDelayMs: request.body.connectorDelayMs ?? 42,
         law: law ?? undefined,

@@ -16,6 +16,7 @@ import * as monitoring from '../../db/repositories/monitoring.js';
 import * as community from '../../db/repositories/community.js';
 import * as postblast from '../../db/repositories/postblast.js';
 import { historyFor, byActor, since } from '../../db/audit.js';
+import { limitForRecord } from '../../domain/vibration/limits.js';
 import { periodQuery } from '../schemas.js';
 
 export function reportRoutes(app) {
@@ -63,12 +64,17 @@ export function reportRoutes(app) {
         .listBlasts(db, site.id, { pageSize: 200 })
         .filter((blast) => blast.firedAt && blast.firedAt >= from && blast.firedAt <= to);
       const assessment = monitoringService.assess({ siteId: site.id, from, to });
-      const receptors = new Map(monitoring.listReceptors(db, site.id).map((r) => [r.id, r.name]));
+      const registered = monitoring.listReceptors(db, site.id);
+      const receptors = new Map(registered.map((receptor) => [receptor.id, receptor.name]));
+      const receptorsById = new Map(registered.map((receptor) => [receptor.id, receptor]));
       const records = monitoring
         .listRecords(db, site.id, { from, to, limit: 2000 })
         .map((record) => ({
           ...record,
           receptorName: receptors.get(record.receptorId) ?? null,
+          // The same limit the letter to a neighbour quotes, worked out in the
+          // same place, so the two documents cannot disagree about a reading.
+          limitMmPerSecond: limitForRecord(record, receptorsById.get(record.receptorId)),
         }));
       const misfires = fired.flatMap((blast) =>
         postblast

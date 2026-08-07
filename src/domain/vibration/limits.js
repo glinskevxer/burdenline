@@ -182,6 +182,28 @@ export function lowestLimit(curveName) {
   return Math.min(...getCurve(curveName).points.map(([, limit]) => limit));
 }
 
+/**
+ * The limit that applied to one record, in millimetres per second.
+ *
+ * The route that drafts a complaint reply and the one that builds the regulator
+ * pack were both working this out for themselves, and they disagreed on the case
+ * that matters: a record with no frequency. One took the curve floor and the
+ * other took the plateau, so the same reading was over the limit in a letter and
+ * under it in the return.
+ */
+export function limitForRecord(record, receptor) {
+  if (!receptor) {
+    return null;
+  }
+  const applies = curveForReceptor(receptor);
+  if (applies.limitMmPerSecond !== undefined) {
+    return applies.limitMmPerSecond;
+  }
+  return record.peakFrequencyHz
+    ? limitAt(applies.name, record.peakFrequencyHz)
+    : lowestLimit(applies.name);
+}
+
 /** The curve a receptor is judged against, from what kind of building it is. */
 export function curveForReceptor(receptor) {
   if (receptor.limitMmPerSecond) {

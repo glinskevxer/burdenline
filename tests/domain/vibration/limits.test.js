@@ -8,6 +8,7 @@ import {
   evaluate,
   lowestLimit,
   curveForReceptor,
+  limitForRecord,
 } from '../../../src/domain/vibration/limits.js';
 import { ValidationError } from '../../../src/lib/errors.js';
 
@@ -156,5 +157,35 @@ describe('curveForReceptor', () => {
 
   it('refuses a structure class nobody has set a curve for', () => {
     expect(() => curveForReceptor({ structureClass: 'barn' })).toThrow(ValidationError);
+  });
+});
+
+describe('limitForRecord', () => {
+  const record = { peakMmPerSecond: 4.2, peakFrequencyHz: 22 };
+
+  it('reads the curve at the frequency the record carries', () => {
+    expect(limitForRecord(record, { structureClass: 'dwelling' })).toBe(
+      limitAt('usbm_drywall', 22),
+    );
+  });
+
+  it('takes a licence limit over the curve', () => {
+    expect(limitForRecord(record, { structureClass: 'dwelling', limitMmPerSecond: 6 })).toBe(6);
+  });
+
+  it('falls to the floor of the curve when the record has no frequency', () => {
+    expect(limitForRecord({ peakMmPerSecond: 4.2 }, { structureClass: 'dwelling' })).toBe(
+      lowestLimit('usbm_drywall'),
+    );
+  });
+
+  it('has no limit for a record from no receptor at all', () => {
+    expect(limitForRecord(record, null)).toBe(null);
+  });
+
+  it('gives a listed building a tighter limit than a dwelling for the same record', () => {
+    expect(limitForRecord(record, { structureClass: 'listed' })).toBeLessThan(
+      limitForRecord(record, { structureClass: 'dwelling' }),
+    );
   });
 });
