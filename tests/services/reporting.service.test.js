@@ -11,6 +11,7 @@ import {
   findProductByCode,
   listBatches,
 } from '../../src/db/repositories/explosives.js';
+import * as monitoring from '../../src/db/repositories/monitoring.js';
 import { fixedClock } from '../../src/lib/clock.js';
 import { NotFoundError } from '../../src/lib/errors.js';
 
@@ -245,5 +246,191 @@ describe('scorecard', () => {
     );
     const card = service.scorecard({ siteId: seeded.site.id, from, to });
     expect(card.failures.some((failure) => failure.includes('flyrock'))).toBe(true);
+  });
+});
+
+describe('the regulator pack', () => {
+  const from = '2025-12-01T00:00:00.000Z';
+  const to = '2025-12-31T23:59:59.000Z';
+
+  function readings(rows) {
+    return monitoring.importRecords(db, seeded.site.id, rows, { clock, sourceFile: 'pack.csv' });
+  }
+
+  const emptyAssessment = { exceedances: [] };
+
+  it('names the site and the licence it is filed under', () => {
+    const { pack } = service.regulatorPack({
+      siteId: seeded.site.id,
+      from,
+      to,
+      preparedBy: 'A Whelan',
+      assessment: emptyAssessment,
+    });
+    expect(pack.header.siteName).toBe('Midway Quarry');
+    expect(pack.header.licenceNumber).toBe('EL-4471');
+    expect(pack.header.preparedBy).toBe('A Whelan');
+    expect(pack.header.preparedAt).toBe('2025-12-12T15:00:00.000Z');
+    expect(pack.header.period).toEqual({ from, to });
+  });
+
+  it('counts only the shots that went off inside the window', () => {
+    firedBlast('MDW-2025-021', '2026-02-02T10:00:00.000Z');
+    const { pack } = service.regulatorPack({
+      siteId: seeded.site.id,
+      from,
+      to,
+      preparedBy: 'A Whelan',
+      assessment: emptyAssessment,
+    });
+    expect(pack.blasting.count).toBe(1);
+    expect(pack.blasting.rows[0].reference).toBe('MDW-2025-020');
+  });
+
+  it('stamps each reading with the receptor name and the limit that applied', () => {
+    const cottage = seeded.receptors.find((r) => r.name === 'Keeper cottage');
+    readings([
+      {
+        receptorId: cottage.id,
+        monitorSerial: 'BE-8811',
+        triggeredAt: '2025-12-11T13:00:04.000Z',
+        peakMmPerSecond: 4.2,
+        peakFrequencyHz: 18,
+        distanceM: 400,
+      },
+    ]);
+    const { pack } = service.regulatorPack({
+      siteId: seeded.site.id,
+      from,
+      to,
+      preparedBy: 'A Whelan',
+      assessment: emptyAssessment,
+    });
+    expect(pack.vibration.count).toBe(1);
+    expect(pack.vibration.rows[0].receptor).toBe('Keeper cottage');
+    // Lath and plaster, on the rising leg of the curve between fifteen and forty
+    // hertz rather than on the plateau below it.
+    expect(pack.vibration.rows[0].limitMmPerSecond).toBe(16.433);
+  });
+
+  it('falls back to the curve floor when the monitor did not report a frequency', () => {
+    const cottage = seeded.receptors.find((r) => r.name === 'Keeper cottage');
+    readings([
+      {
+        receptorId: cottage.id,
+        monitorSerial: 'BE-8812',
+        triggeredAt: '2025-12-11T13:00:05.000Z',
+        peakMmPerSecond: 2.9,
+      },
+    ]);
+    const { pack } = service.regulatorPack({
+      siteId: seeded.site.id,
+      from,
+      to,
+      preparedBy: 'A Whelan',
+      assessment: emptyAssessment,
+    });
+    expect(pack.vibration.rows[0].frequencyHz).toBeNull();
+    expect(pack.vibration.rows[0].limitMmPerSecond).toBe(3.4);
+  });
+
+  it('leaves the limit blank on a reading nobody attached to a receptor', () => {
+    readings([
+      {
+        monitorSerial: 'BE-8813',
+        triggeredAt: '2025-12-11T13:00:06.000Z',
+        peakMmPerSecond: 1.1,
+        peakFrequencyHz: 30,
+      },
+    ]);
+    const { pack } = service.regulatorPack({
+      siteId: seeded.site.id,
+      from,
+      to,
+      preparedBy: 'A Whelan',
+      assessment: emptyAssessment,
+    });
+    expect(pack.vibration.rows[0].receptor).toBeNull();
+    expect(pack.vibration.rows[0].limitMmPerSecond).toBeNull();
+  });
+
+  it('names the receptor on an exceedance the monitoring service found', () => {
+    const church = seeded.receptors.find((r) => r.name === 'Saint Brendan church');
+    const { pack } = service.regulatorPack({
+      siteId: seeded.site.id,
+      from,
+      to,
+      preparedBy: 'A Whelan',
+      assessment: {
+        exceedances: [{ receptorId: church.id, peakMmPerSecond: 9.4, ratio: 3.13 }],
+      },
+    });
+    expect(pack.exceedances.count).toBe(1);
+    expect(pack.exceedances.rows[0].receptor).toBe('Saint Brendan church');
+  });
+
+  it('renders to files when that is what was asked for', () => {
+    const rendered = service.regulatorPack({
+      siteId: seeded.site.id,
+      from,
+      to,
+      preparedBy: 'A Whelan',
+      assessment: emptyAssessment,
+      format: 'files',
+    });
+    expect(rendered.pack).toBeUndefined();
+    expect(Object.keys(rendered.files)).toContain('summary.json');
+    expect(Object.keys(rendered.files)).toContain('vibration.csv');
+    for (const content of Object.values(rendered.files)) {
+      expect(typeof content).toBe('string');
+    }
+    const summary = JSON.parse(rendered.files['summary.json']);
+    expect(summary.header.siteName).toBe('Midway Quarry');
+    expect(summary.summary.blastCount).toBe(1);
+  });
+
+  it('refuses a site that is not there rather than returning an empty return', () => {
+    expect(() =>
+      service.regulatorPack({
+        siteId: 'site_nowhere',
+        from,
+        to,
+        preparedBy: 'A Whelan',
+        assessment: emptyAssessment,
+      }),
+    ).toThrow(NotFoundError);
+  });
+});
+
+describe('firedInPeriod', () => {
+  it('leaves out a shot that was designed and never fired', () => {
+    createBlast(
+      db,
+      { siteId: seeded.site.id, patternId: seeded.pattern.id, reference: 'MDW-2025-030' },
+      context,
+    );
+    firedBlast('MDW-2025-031', '2025-12-09T11:00:00.000Z');
+    const fired = service.firedInPeriod(
+      seeded.site.id,
+      '2025-12-01T00:00:00.000Z',
+      '2025-12-31T23:59:59.000Z',
+    );
+    expect(fired.map((blast) => blast.reference).sort()).toEqual(['MDW-2025-020', 'MDW-2025-031']);
+  });
+
+  it('takes the window as closed at both ends', () => {
+    firedBlast('MDW-2025-032', '2025-12-05T00:00:00.000Z');
+    const inclusive = service.firedInPeriod(
+      seeded.site.id,
+      '2025-12-05T00:00:00.000Z',
+      '2025-12-05T00:00:00.000Z',
+    );
+    expect(inclusive.map((blast) => blast.reference)).toEqual(['MDW-2025-032']);
+    const after = service.firedInPeriod(
+      seeded.site.id,
+      '2025-12-05T00:00:00.001Z',
+      '2025-12-31T00:00:00.000Z',
+    );
+    expect(after.map((blast) => blast.reference)).toEqual(['MDW-2025-020']);
   });
 });

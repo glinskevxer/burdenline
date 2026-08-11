@@ -8,15 +8,8 @@
  */
 
 import { createReportingService } from '../../services/reporting.service.js';
-import { buildPack, renderPack } from '../../domain/reporting/regulator-pack.js';
 import { createMonitoringService } from '../../services/monitoring.service.js';
-import * as sites from '../../db/repositories/sites.js';
-import * as blasts from '../../db/repositories/blasts.js';
-import * as monitoring from '../../db/repositories/monitoring.js';
-import * as community from '../../db/repositories/community.js';
-import * as postblast from '../../db/repositories/postblast.js';
 import { historyFor, byActor, since } from '../../db/audit.js';
-import { limitForRecord } from '../../domain/vibration/limits.js';
 import { periodQuery } from '../schemas.js';
 
 export function reportRoutes(app) {
@@ -58,46 +51,15 @@ export function reportRoutes(app) {
     '/sites/:siteId/regulator-pack',
     { preHandler: app.requireGrant('read'), schema: { querystring: periodQuery } },
     async (request) => {
-      const site = sites.getSite(db, request.params.siteId);
       const { from, to } = request.query;
-      const fired = blasts
-        .listBlasts(db, site.id, { pageSize: 200 })
-        .filter((blast) => blast.firedAt && blast.firedAt >= from && blast.firedAt <= to);
-      const assessment = monitoringService.assess({ siteId: site.id, from, to });
-      const registered = monitoring.listReceptors(db, site.id);
-      const receptors = new Map(registered.map((receptor) => [receptor.id, receptor.name]));
-      const receptorsById = new Map(registered.map((receptor) => [receptor.id, receptor]));
-      const records = monitoring
-        .listRecords(db, site.id, { from, to, limit: 2000 })
-        .map((record) => ({
-          ...record,
-          receptorName: receptors.get(record.receptorId) ?? null,
-          // The same limit the letter to a neighbour quotes, worked out in the
-          // same place, so the two documents cannot disagree about a reading.
-          limitMmPerSecond: limitForRecord(record, receptorsById.get(record.receptorId)),
-        }));
-      const misfires = fired.flatMap((blast) =>
-        postblast
-          .listMisfires(db, blast.id)
-          .map((misfire) => ({ ...misfire, blastReference: blast.reference })),
-      );
-      const pack = buildPack({
-        siteName: site.name,
-        licenceNumber: site.licenceNumber ?? 'not recorded',
+      return reporting.regulatorPack({
+        siteId: request.params.siteId,
         from,
         to,
         preparedBy: request.actor.name ?? request.actor.id,
-        preparedAt: clock.now(),
-        blasts: fired,
-        records,
-        exceedances: assessment.exceedances.map((item) => ({
-          ...item,
-          receptorName: receptors.get(item.receptorId) ?? null,
-        })),
-        complaints: community.listComplaints(db, site.id, { from, to, limit: 500 }),
-        misfires,
+        assessment: monitoringService.assess({ siteId: request.params.siteId, from, to }),
+        format: request.query.format,
       });
-      return request.query.format === 'files' ? { files: renderPack(pack) } : { pack };
     },
   );
 
