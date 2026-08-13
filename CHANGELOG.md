@@ -1,5 +1,20 @@
 # Changes
 
+## 1.0.1
+
+Security. Nothing in the behaviour changed.
+
+- Moved `fastify` to 5.12.1 and `@fastify/jwt` to 10.2.2. Advisories landed
+  against the versions this was built on, two of them content type parsing
+  problems that let a body skip validation, and the rest against `fast-jwt`
+  underneath the token plugin. `npm audit --omit=dev` is clean again.
+- Fixed the expired token test, which had stopped testing anything. It wrote an
+  `exp` claim into the payload, and the signer overwrites a claim it was also
+  given as an option, so the token it produced was valid. It now sets the
+  lifetime through the signer and checks the claim before it uses it.
+- Added a check that every dependency stays pinned to one version and that the
+  lock file agrees with the manifest.
+
 ## 1.0.0
 
 The first version that runs a quarry rather than part of one. Everything a shot

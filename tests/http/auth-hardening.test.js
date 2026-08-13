@@ -65,12 +65,16 @@ describe('a token that is not usable', () => {
   });
 
   it('refuses one that has expired', async () => {
-    const expired = harness.app.jwt.sign({
-      sub: 'per_viewer',
-      name: 'viewer',
-      roles: ['viewer'],
-      exp: Math.floor(Date.now() / 1000) - 60,
-    });
+    // The lifetime has to be set through the signer rather than by writing an
+    // `exp` claim into the payload. The signer overwrites a claim it was also
+    // given as an option, so a payload written that way comes back valid and the
+    // test passes without ever having tested anything.
+    const expired = harness.app.jwt.sign(
+      { sub: 'per_viewer', name: 'viewer', roles: ['viewer'] },
+      { expiresIn: '-60s' },
+    );
+    const claims = JSON.parse(Buffer.from(expired.split('.')[1], 'base64url').toString('utf8'));
+    expect(claims.exp).toBeLessThan(Math.floor(Date.now() / 1000));
     const response = await harness.app.inject({
       method: 'GET',
       url: '/sites',
