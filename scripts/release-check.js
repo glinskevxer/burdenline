@@ -11,7 +11,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { openDatabase, closeDatabase } from '../src/db/connection.js';
 import {
   loadMigrations,
@@ -62,6 +62,66 @@ export async function checkMigrations() {
   }
 }
 
+/**
+ * Which files a script writes, read out of the scripts rather than kept in a
+ * list somebody has to remember to update. A target has to be a plain string
+ * constant for this to see it, which is the same restriction that makes the
+ * scripts readable, so it has not cost anything yet.
+ */
+export function generatedTargets(sources) {
+  const targets = new Set();
+  for (const [file, text] of Object.entries(sources)) {
+    const constants = new Map();
+    for (const [, name, value] of text.matchAll(/const\s+([A-Z_]+)\s*=\s*'([^']+)'/g)) {
+      constants.set(name, value);
+    }
+    for (const [, argument] of text.matchAll(/writeFileSync\(\s*([A-Za-z_'"][^,]*)/g)) {
+      const literal = argument.match(/^'([^']+)'$/);
+      const named = constants.get(argument.trim());
+      const target = literal ? literal[1] : named;
+      if (target && !target.startsWith('/') && !target.includes('${')) {
+        targets.add(target);
+      }
+    }
+    void file;
+  }
+  return [...targets].sort();
+}
+
+/** The paths `.gitattributes` marks as generated. */
+export function markedGenerated(attributesText) {
+  return attributesText
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith('#') && /linguist-generated=true/.test(line))
+    .map((line) => line.split(/\s+/)[0])
+    .sort();
+}
+
+/**
+ * Every generated file that git tracks has to be marked.
+ *
+ * An unmarked one counts toward the repository's language statistics and reads
+ * in a review as though somebody typed it. The check is here rather than in a
+ * comment because the next person to add a generator will not read the comment.
+ */
+export function checkGeneratedMarked(sources, attributesText, tracked) {
+  const name = 'every generated file that is checked in is marked as generated';
+  const trackedSet = new Set(tracked);
+  const marked = new Set(markedGenerated(attributesText));
+  const missing = generatedTargets(sources).filter(
+    (target) => trackedSet.has(target) && !marked.has(target),
+  );
+  if (!/^\*\s+text=auto\s+eol=lf$/m.test(attributesText)) {
+    return { name, ok: false, detail: 'no line ending rule, expected: * text=auto eol=lf' };
+  }
+  return {
+    name,
+    ok: missing.length === 0,
+    detail: missing.length > 0 ? `not marked: ${missing.join(', ')}` : null,
+  };
+}
+
 export function checkVersion(packageText, tags) {
   const { version } = JSON.parse(packageText);
   const released = tags
@@ -95,6 +155,15 @@ if (isMain) {
     runStep('the exported tree installs and runs', 'node', ['scripts/export-check.js']),
     runStep('dependency advisories are answered for', 'node', ['scripts/audit-dependencies.js']),
     await checkMigrations(),
+    checkGeneratedMarked(
+      Object.fromEntries(
+        readdirSync('scripts')
+          .filter((file) => file.endsWith('.js'))
+          .map((file) => [file, readFileSync(`scripts/${file}`, 'utf8')]),
+      ),
+      readFileSync('.gitattributes', 'utf8'),
+      execFileSync('git', ['ls-files'], { encoding: 'utf8' }).split('\n').filter(Boolean),
+    ),
   ];
   try {
     const tags = execFileSync('git', ['tag', '--list'], { encoding: 'utf8' });

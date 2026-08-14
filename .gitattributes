@@ -1,0 +1,15 @@
+# Line endings are decided here rather than by whatever each machine happens to
+# be set to. Everything text normalises to LF in the repository, so a checkout
+# on Windows does not turn every file in the next diff into a rewrite.
+* text=auto eol=lf
+
+# api.json is written by scripts/export-api.js from the routes the server
+# registers. It is checked in on purpose, because a route appearing or
+# disappearing is then visible in a diff, but nobody typed it. Without this
+# mark it counts toward the repository's language statistics and it reads in a
+# review as though somebody sat down and wrote nine hundred lines of JSON.
+api.json linguist-generated=true
+
+# The lock file is the same case. GitHub already skips it, and saying so here
+# means the rule is written down in one place rather than assumed.
+package-lock.json linguist-generated=true
